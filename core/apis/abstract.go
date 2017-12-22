@@ -33,9 +33,9 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	"github.com/yroffin/goslides/bean"
-	"github.com/yroffin/goslides/business"
-	"github.com/yroffin/goslides/models"
+	"github.com/yroffin/go-boot-sqllite/core/bean"
+	"github.com/yroffin/go-boot-sqllite/core/business"
+	"github.com/yroffin/go-boot-sqllite/core/models"
 )
 
 // API base class
@@ -261,24 +261,24 @@ func (p *API) HandlerStaticPatchByID() func(w http.ResponseWriter, r *http.Reque
 	return anonymous
 }
 
-// genericGetAll default method
-func (p *API) genericGetAll(toGet models.IPersistent, toGets models.IPersistents) (string, error) {
+// GenericGetAll default method
+func (p *API) GenericGetAll(toGet models.IPersistent, toGets models.IPersistents) (string, error) {
 	p.CrudBusiness.GetAll(toGet, toGets)
 	var arr = toGets.Get()
 	data, _ := json.Marshal(&arr)
 	return string(data), nil
 }
 
-// genericGetByID default method
-func (p *API) genericGetByID(id string, toGet models.IPersistent) (string, error) {
+// GenericGetByID default method
+func (p *API) GenericGetByID(id string, toGet models.IPersistent) (string, error) {
 	toGet.SetID(id)
 	p.CrudBusiness.Get(toGet)
 	data, _ := json.Marshal(&toGet)
 	return string(data), nil
 }
 
-// genericPost adefault method
-func (p *API) genericPost(body string, toCreate models.IPersistent) (string, error) {
+// GenericPost adefault method
+func (p *API) GenericPost(body string, toCreate models.IPersistent) (string, error) {
 	var bin = []byte(body)
 	json.Unmarshal(bin, &toCreate)
 	bean, _ := p.CrudBusiness.Create(toCreate)
@@ -286,8 +286,8 @@ func (p *API) genericPost(body string, toCreate models.IPersistent) (string, err
 	return string(data), nil
 }
 
-// genericPutByID default method
-func (p *API) genericPutByID(id string, body string, toUpdate models.IPersistent) (string, error) {
+// GenericPutByID default method
+func (p *API) GenericPutByID(id string, body string, toUpdate models.IPersistent) (string, error) {
 	toUpdate.SetID(id)
 	var bin = []byte(body)
 	json.Unmarshal(bin, &toUpdate)
@@ -296,8 +296,8 @@ func (p *API) genericPutByID(id string, body string, toUpdate models.IPersistent
 	return string(data), nil
 }
 
-// genericPatchByID default method
-func (p *API) genericPatchByID(id string, body string, toPatch models.IPersistent) (string, error) {
+// GenericPatchByID default method
+func (p *API) GenericPatchByID(id string, body string, toPatch models.IPersistent) (string, error) {
 	toPatch.SetID(id)
 	var bin = []byte(body)
 	json.Unmarshal(bin, &toPatch)
@@ -306,8 +306,8 @@ func (p *API) genericPatchByID(id string, body string, toPatch models.IPersisten
 	return string(data), nil
 }
 
-// genericDeleteByID default method
-func (p *API) genericDeleteByID(id string, toDelete models.IPersistent) (string, error) {
+// GenericDeleteByID default method
+func (p *API) GenericDeleteByID(id string, toDelete models.IPersistent) (string, error) {
 	toDelete.SetID(id)
 	old, _ := p.CrudBusiness.Delete(toDelete)
 	data, _ := json.Marshal(&old)

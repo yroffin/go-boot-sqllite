@@ -43,6 +43,10 @@ type Store struct {
 	*bean.Bean
 	// Store SQL lite
 	database *sql.DB
+	// Tables
+	Tables []string
+	// Db path
+	DbPath string
 }
 
 // IStore interface
@@ -58,14 +62,13 @@ func (p *Store) Init() error {
 // PostConstruct this bean
 func (p *Store) PostConstruct(name string) error {
 	// Create database
-	database, _ := sql.Open("sqlite3", "./database.db")
+	database, _ := sql.Open("sqlite3", p.DbPath)
 	p.database = database
 
-	var tables []string
-	tables = append(tables, "Slide")
-	for i := 0; i < len(tables); i++ {
+	// create all tables
+	for i := 0; i < len(p.Tables); i++ {
 		// prepare statement
-		statement, _ := p.database.Prepare("CREATE TABLE IF NOT EXISTS " + tables[i] + " (id TEXT NOT NULL PRIMARY KEY, json TEXT)")
+		statement, _ := p.database.Prepare("CREATE TABLE IF NOT EXISTS " + p.Tables[i] + " (id TEXT NOT NULL PRIMARY KEY, json TEXT)")
 		statement.Exec()
 	}
 

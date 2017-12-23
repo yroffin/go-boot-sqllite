@@ -23,6 +23,7 @@
 package apis
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -53,7 +54,22 @@ func (p *Router) PostConstruct(name string) error {
 	log.Printf("Router::PostConstruct - router creation")
 	// define all routes
 	p.Router = mux.NewRouter()
+	// Fix default handler
+	p.Router.NotFoundHandler = http.HandlerFunc(p.HandlerStaticNotFound())
 	return nil
+}
+
+// HandlerStaticNotFound Not found handler
+func (p *Router) HandlerStaticNotFound() func(w http.ResponseWriter, r *http.Request) {
+	anonymous := func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Request Url %v", r.URL)
+		log.Printf("Request Headers %v", r.Header)
+		log.Printf("Request Encoding %v", r.TransferEncoding)
+		w.Header().Set("Content-type", "text/plain")
+		w.WriteHeader(404)
+		fmt.Fprintf(w, "Not found")
+	}
+	return anonymous
 }
 
 // Validate Init this API
@@ -66,7 +82,10 @@ func (p *Router) Validate(name string) error {
 
 // HandleFunc declare a handler
 func (p *Router) HandleFunc(path string, f func(http.ResponseWriter, *http.Request), method string, content string) {
-	log.Printf("Router::HandleFunc %s with method %s", path, method)
+	log.Printf("Router::HandleFunc '%s' with method '%s' with type mime '%s'", path, method, content)
 	// declare it to the router
-	p.Router.HandleFunc(path, f).Methods(method).Headers("Content-Type", content)
+	var res = p.Router.HandleFunc(path, f).Methods(method)
+	if len(content) > 0 {
+		res.Headers("Content-Type", content)
+	}
 }

@@ -66,7 +66,9 @@ type APIMethod struct {
 	path    string
 	handler string
 	method  string
-	addr    reflect.Value
+	// mime type
+	typeMime string
+	addr     reflect.Value
 }
 
 // APIInterface all package methods
@@ -83,16 +85,18 @@ func (p *API) ScanHandler(ptr interface{}) {
 	types := reflect.TypeOf(ptr).Elem()
 	for i := 0; i < types.NumField(); i++ {
 		field := types.Field(i)
-		if strings.Contains(field.Name, "handler") {
-			p.append(ptr, field.Tag.Get("path"), field.Tag.Get("handler"), field.Tag.Get("method"))
+		// declare a standard mux handler
+		if len(field.Tag.Get("handler")) > 0 {
+			p.append(ptr, field.Tag.Get("path"), field.Tag.Get("handler"), field.Tag.Get("method"), field.Tag.Get("mime-type"))
 		}
+		// declare a crud handler
 		if strings.Contains(field.Name, "crud") {
-			p.append(ptr, field.Tag.Get("path")+"/{id:[0-9a-zA-Z-_]*}", "HandlerStaticGetByID", "GET")
-			p.append(ptr, field.Tag.Get("path"), "HandlerStaticGetAll", "GET")
-			p.append(ptr, field.Tag.Get("path"), "HandlerStaticPost", "POST")
-			p.append(ptr, field.Tag.Get("path")+"/{id:[0-9a-zA-Z-_]*}", "HandlerStaticPutByID", "PUT")
-			p.append(ptr, field.Tag.Get("path")+"/{id:[0-9a-zA-Z-_]*}", "HandlerStaticDeleteByID", "DELETE")
-			p.append(ptr, field.Tag.Get("path")+"/{id:[0-9a-zA-Z-_]*}", "HandlerStaticPatchByID", "PATCH")
+			p.append(ptr, field.Tag.Get("path")+"/{id:[0-9a-zA-Z-_]*}", "HandlerStaticGetByID", "GET", "application/json")
+			p.append(ptr, field.Tag.Get("path"), "HandlerStaticGetAll", "GET", "application/json")
+			p.append(ptr, field.Tag.Get("path"), "HandlerStaticPost", "POST", "application/json")
+			p.append(ptr, field.Tag.Get("path")+"/{id:[0-9a-zA-Z-_]*}", "HandlerStaticPutByID", "PUT", "application/json")
+			p.append(ptr, field.Tag.Get("path")+"/{id:[0-9a-zA-Z-_]*}", "HandlerStaticDeleteByID", "DELETE", "application/json")
+			p.append(ptr, field.Tag.Get("path")+"/{id:[0-9a-zA-Z-_]*}", "HandlerStaticPatchByID", "PATCH", "application/json")
 		}
 	}
 	// call bean init
@@ -100,14 +104,14 @@ func (p *API) ScanHandler(ptr interface{}) {
 }
 
 // Init initialize the API
-func (p *API) append(ptr interface{}, path string, handler string, method string) {
+func (p *API) append(ptr interface{}, path string, handler string, method string, mime string) {
 	addr := reflect.ValueOf(ptr).MethodByName(handler)
 	if addr.IsNil() {
 		log.Fatalf("Unable to find any method called '%v'", handler)
 	} else {
-		log.Printf("Successfully mounted method called '%v' on path '%s' with method '%s'", handler, path, method)
+		log.Printf("Successfully mounted method called '%v' on path '%s' with method '%s' - '%s'", handler, path, method, mime)
 	}
-	p.methods = append(p.methods, APIMethod{path: path, handler: handler, method: method, addr: addr})
+	p.methods = append(p.methods, APIMethod{path: path, handler: handler, method: method, addr: addr, typeMime: mime})
 }
 
 // Init initialize the APIf
@@ -151,9 +155,9 @@ func (p *API) Declare(data APIMethod, intf interface{}) error {
 	var result error
 	// verify type
 	if value, ok := intf.(func(http.ResponseWriter, *http.Request)); ok {
-		log.Printf("Declare interface %s on %s with method %s (%s)", data.handler, data.path, data.method, (*p.RouterBean).GetName())
+		log.Printf("Declare interface '%s' on '%s' with method '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (*p.RouterBean).GetName(), data.typeMime)
 		// declare it to the router
-		(*p.RouterBean).HandleFunc(data.path, value, data.method, "application/json")
+		(*p.RouterBean).HandleFunc(data.path, value, data.method, data.typeMime)
 		result = nil
 	} else {
 		// Error case

@@ -152,18 +152,22 @@ func (p *API) PostConstruct(name string) error {
 
 // Declare a new interface
 func (p *API) Declare(data APIMethod, intf interface{}) error {
-	var result error
 	// verify type
 	if value, ok := intf.(func(http.ResponseWriter, *http.Request)); ok {
-		log.Printf("Declare interface '%s' on '%s' with method '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (*p.RouterBean).GetName(), data.typeMime)
+		log.Printf("Declare handler() '%s' on '%s' with method '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (*p.RouterBean).GetName(), data.typeMime)
 		// declare it to the router
 		(*p.RouterBean).HandleFunc(data.path, value, data.method, data.typeMime)
-		result = nil
-	} else {
-		// Error case
-		result = errors.New("Unable to find any type for " + data.handler)
+		return nil
 	}
-	return result
+	// verify type
+	if value, ok := intf.(func() (string, error)); ok {
+		log.Printf("Declare function() '%s' on '%s' with method '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (*p.RouterBean).GetName(), data.typeMime)
+		// declare it to the router
+		(*p.RouterBean).HandleFuncString(data.path, value, data.method, data.typeMime)
+		return nil
+	}
+	// Error case
+	return errors.New("Unable to find any type for " + data.handler)
 }
 
 // HandlerStaticGetAll is the GET by ID handler

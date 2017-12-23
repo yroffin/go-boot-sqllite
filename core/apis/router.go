@@ -59,19 +59,6 @@ func (p *Router) PostConstruct(name string) error {
 	return nil
 }
 
-// HandlerStaticNotFound Not found handler
-func (p *Router) HandlerStaticNotFound() func(w http.ResponseWriter, r *http.Request) {
-	anonymous := func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Request Url %v", r.URL)
-		log.Printf("Request Headers %v", r.Header)
-		log.Printf("Request Encoding %v", r.TransferEncoding)
-		w.Header().Set("Content-type", "text/plain")
-		w.WriteHeader(404)
-		fmt.Fprintf(w, "Not found")
-	}
-	return anonymous
-}
-
 // Validate Init this API
 func (p *Router) Validate(name string) error {
 	log.Printf("Router::Validate - router validation")
@@ -88,4 +75,43 @@ func (p *Router) HandleFunc(path string, f func(http.ResponseWriter, *http.Reque
 	if len(content) > 0 {
 		res.Headers("Content-Type", content)
 	}
+}
+
+// HandleFuncString declare a string handler
+func (p *Router) HandleFuncString(path string, f func() (string, error), method string, content string) {
+	log.Printf("Router::HandleFunc '%s' with method '%s' with type mime '%s'", path, method, content)
+	// declare it to the router
+	var res = p.Router.HandleFunc(path, p.HandlerStaticString(f)).Methods(method)
+	if len(content) > 0 {
+		res.Headers("Content-Type", content)
+	}
+}
+
+// HandlerStaticNotFound Not found handler
+func (p *Router) HandlerStaticNotFound() func(w http.ResponseWriter, r *http.Request) {
+	anonymous := func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Request Url %v", r.URL)
+		log.Printf("Request Headers %v", r.Header)
+		log.Printf("Request Encoding %v", r.TransferEncoding)
+		w.Header().Set("Content-type", "text/plain")
+		w.WriteHeader(404)
+		fmt.Fprintf(w, "Not found")
+	}
+	return anonymous
+}
+
+// HandlerStaticString render string
+func (p *Router) HandlerStaticString(method func() (string, error)) func(w http.ResponseWriter, r *http.Request) {
+	anonymous := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-type", "text/html")
+		data, err := method()
+		if err != nil {
+			w.WriteHeader(400)
+			fmt.Fprintf(w, "{\"message\":\"\"}")
+			return
+		}
+		w.WriteHeader(200)
+		fmt.Fprintf(w, data)
+	}
+	return anonymous
 }

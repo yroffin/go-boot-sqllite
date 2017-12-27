@@ -23,16 +23,22 @@
 package manager
 
 import (
+	"fmt"
 	"log"
+	"net/http"
 	"reflect"
 	"strings"
+	"sync"
 
 	"github.com/yroffin/go-boot-sqllite/core/bean"
 )
 
 // Manager interface
 type Manager struct {
+	// Bean registry
 	Beans map[string]bean.IBean
+	// sync wait group
+	wg sync.WaitGroup
 }
 
 // IManager interface
@@ -75,6 +81,42 @@ func (m *Manager) Boot() error {
 		value.Validate(key)
 		log.Printf("Manager::Boot validation sucessfull for %v", key)
 	}
+	return nil
+}
+
+// HTTP declare http listener
+func (m *Manager) HTTP(port int) error {
+	var sport = fmt.Sprintf("%d", port)
+	m.wg.Add(1)
+	go func(sport string) {
+		log.Printf("Try to serve HTTP proxy on %s", sport)
+		// After defining our server, we finally "listen and serve" on port 8080
+		err := http.ListenAndServe(":"+sport, nil)
+		if err != nil {
+			log.Fatalf("Unable to serve HTTP %v", err)
+		}
+	}(sport)
+	return nil
+}
+
+// HTTPS declare http listener
+func (m *Manager) HTTPS(port int) error {
+	var sport = fmt.Sprintf("%d", port)
+	m.wg.Add(1)
+	go func(sport string) {
+		log.Printf("Try to serve HTTPS proxy on %s", sport)
+		// Also serve on https/tls
+		err := http.ListenAndServeTLS(":"+sport, ".ssl/certificate.crt", ".ssl/private.key", nil)
+		if err != nil {
+			log.Fatalf("Unable to serve HTTPS %v", err)
+		}
+	}(sport)
+	return nil
+}
+
+// Wait for end of all listener
+func (m *Manager) Wait() error {
+	m.wg.Wait()
 	return nil
 }
 

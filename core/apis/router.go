@@ -111,7 +111,7 @@ func (p *Router) HandlerStaticString(method func() (string, error)) func(w http.
 			return
 		}
 		w.WriteHeader(200)
-		fmt.Fprintf(w, data)
+		w.Write([]byte(data))
 	}
 	return anonymous
 }

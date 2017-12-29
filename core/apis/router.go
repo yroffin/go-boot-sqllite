@@ -71,7 +71,7 @@ func (p *Router) Validate(name string) error {
 func (p *Router) HandleFunc(path string, f func(http.ResponseWriter, *http.Request), method string, content string) {
 	log.Printf("Router::HandleFunc '%s' with method '%s' with type mime '%s'", path, method, content)
 	// declare it to the router
-	var res = p.Router.HandleFunc(path, f).Methods(method)
+	var res = p.Router.HandleFunc(path, p.HandlerStatic(f)).Methods(method)
 	if len(content) > 0 {
 		res.Headers("Content-Type", content)
 	}
@@ -100,9 +100,32 @@ func (p *Router) HandlerStaticNotFound() func(w http.ResponseWriter, r *http.Req
 	return anonymous
 }
 
+// HandlerStatic render string
+func (p *Router) HandlerStatic(method func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
+	anonymous := func(w http.ResponseWriter, r *http.Request) {
+		// security header
+		w.Header().Set("Strict-Transport-Security", "")
+		w.Header().Set("Content-Security-Policy", "")
+		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("Referrer-Policy", "same-origin")
+		method(w, r)
+	}
+	return anonymous
+}
+
 // HandlerStaticString render string
 func (p *Router) HandlerStaticString(method func() (string, error)) func(w http.ResponseWriter, r *http.Request) {
 	anonymous := func(w http.ResponseWriter, r *http.Request) {
+		// security header
+		w.Header().Set("Strict-Transport-Security", "")
+		w.Header().Set("Content-Security-Policy", "")
+		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("Referrer-Policy", "same-origin")
+		// content
 		w.Header().Set("Content-type", "text/html")
 		data, err := method()
 		if err != nil {

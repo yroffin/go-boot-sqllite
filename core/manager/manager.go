@@ -106,7 +106,7 @@ func (m *Manager) HTTPS(port int) error {
 	go func(sport string) {
 		log.Printf("Try to serve HTTPS proxy on %s", sport)
 		// Also serve on https/tls
-		err := http.ListenAndServeTLS(":"+sport, ".ssl/certificate.crt", ".ssl/private.key", nil)
+		err := http.ListenAndServeTLS(":"+sport, ".ssl/hostname.pem", ".ssl/private.key", nil)
 		if err != nil {
 			log.Fatalf("Unable to serve HTTPS %v", err)
 		}
@@ -146,6 +146,9 @@ func (m *Manager) isPrivate(val reflect.StructField) bool {
 func (m *Manager) dump(val reflect.Value) {
 	// Interface case
 	if val.Type().Kind() == reflect.Interface {
+		if val.IsNil() {
+			return
+		}
 		m.dump(val.Elem())
 		return
 	}

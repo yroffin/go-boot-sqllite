@@ -36,7 +36,10 @@ import (
 // Manager interface
 type Manager struct {
 	// Bean registry
-	Beans map[string]bean.IBean
+	ArrayOfBeans     []bean.IBean
+	ArrayOfBeanNames []string
+	// Bean registry
+	MapOfBeans map[string]bean.IBean
 	// sync wait group
 	wg sync.WaitGroup
 }
@@ -53,12 +56,16 @@ type IManager interface {
 // Init a single bean
 func (m *Manager) Init() {
 	log.Printf("Manager::Init")
-	m.Beans = make(map[string]bean.IBean)
+	m.ArrayOfBeans = make([]bean.IBean, 0)
+	m.ArrayOfBeanNames = make([]string, 0)
+	m.MapOfBeans = make(map[string]bean.IBean)
 }
 
 // Register a single bean
 func (m *Manager) Register(name string, b bean.IBean) error {
-	m.Beans[name] = b
+	m.ArrayOfBeans = append(m.ArrayOfBeans, b)
+	m.ArrayOfBeanNames = append(m.ArrayOfBeanNames, name)
+	m.MapOfBeans[name] = b
 	b.SetName(name)
 	b.Init()
 	return nil
@@ -67,19 +74,19 @@ func (m *Manager) Register(name string, b bean.IBean) error {
 // Boot Init this manager
 func (m *Manager) Boot() error {
 	log.Printf("Manager::Boot inject")
-	for key, value := range m.Beans {
-		m.Inject(key, value)
-		log.Printf("Manager::Boot injection sucessfull for %v", key)
+	for index := 0; index < len(m.ArrayOfBeans); index++ {
+		m.Inject(m.ArrayOfBeanNames[index], m.ArrayOfBeans[index])
+		log.Printf("Manager::Boot injection sucessfull for %v", m.ArrayOfBeanNames[index])
 	}
 	log.Printf("Manager::Boot post-construct")
-	for key, value := range m.Beans {
-		value.PostConstruct(key)
-		log.Printf("Manager::Boot post-construct sucessfull for %v", key)
+	for index := 0; index < len(m.ArrayOfBeans); index++ {
+		m.ArrayOfBeans[index].PostConstruct(m.ArrayOfBeanNames[index])
+		log.Printf("Manager::Boot post-construct sucessfull for %v", m.ArrayOfBeanNames[index])
 	}
 	log.Printf("Manager::Boot validate")
-	for key, value := range m.Beans {
-		value.Validate(key)
-		log.Printf("Manager::Boot validation sucessfull for %v", key)
+	for index := 0; index < len(m.ArrayOfBeans); index++ {
+		m.ArrayOfBeans[index].Validate(m.ArrayOfBeanNames[index])
+		log.Printf("Manager::Boot validation sucessfull for %v", m.ArrayOfBeanNames[index])
 	}
 	return nil
 }
@@ -184,8 +191,8 @@ func (m *Manager) dump(val reflect.Value) {
 				var beanName = tag.Get("bean")
 				apply, ok := valueField.Interface().(func(interface{}))
 				if ok {
-					log.Printf("Field  Name: '%s' INJECTION with %v/%v", typeField.Name, m.Beans[beanName], beanName)
-					apply(m.Beans[beanName])
+					log.Printf("Field  Name: '%s' INJECTION with %v/%v", typeField.Name, m.MapOfBeans[beanName], beanName)
+					apply(m.MapOfBeans[beanName])
 				} else {
 					log.Printf("Field  Name: '%s' IS NOT COMPATIBLE", typeField.Name)
 				}

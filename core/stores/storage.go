@@ -131,9 +131,8 @@ func (p *Store) Delete(id string, entity models.IPersistent, set func(id string)
 	// Fix ID
 	set(id)
 	// prepare statement
-	statement, _ := p.database.Prepare("DELETE " + entityName + " SET json = ? WHERE id = ?")
-	data, _ := json.Marshal(entity)
-	statement.Exec(string(data), id)
+	statement, _ := p.database.Prepare("DELETE FROM " + entityName + " WHERE id = ?")
+	statement.Exec(id)
 	return nil
 }
 

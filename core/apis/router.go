@@ -55,6 +55,7 @@ func (p *Router) PostConstruct(name string) error {
 	// define all routes
 	p.Router = mux.NewRouter()
 	// Fix default handler
+	p.Router.MethodNotAllowedHandler = http.HandlerFunc(p.HandlerStaticNotAllowed())
 	p.Router.NotFoundHandler = http.HandlerFunc(p.HandlerStaticNotFound())
 	return nil
 }
@@ -96,6 +97,19 @@ func (p *Router) HandlerStaticNotFound() func(w http.ResponseWriter, r *http.Req
 		w.Header().Set("Content-type", "text/plain")
 		w.WriteHeader(404)
 		fmt.Fprintf(w, "Not found")
+	}
+	return anonymous
+}
+
+// HandlerStaticNotFound Not found handler
+func (p *Router) HandlerStaticNotAllowed() func(w http.ResponseWriter, r *http.Request) {
+	anonymous := func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Request Url %v", r.URL)
+		log.Printf("Request Headers %v", r.Header)
+		log.Printf("Request Encoding %v", r.TransferEncoding)
+		w.Header().Set("Content-type", "text/plain")
+		w.WriteHeader(405)
+		fmt.Fprintf(w, "Not allowed")
 	}
 	return anonymous
 }

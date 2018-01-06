@@ -317,6 +317,7 @@ func (p *API) GenericPatchByID(id string, body string, toPatch models.IPersisten
 // GenericDeleteByID default method
 func (p *API) GenericDeleteByID(id string, toDelete models.IPersistent) (string, error) {
 	toDelete.SetID(id)
+	p.CrudBusiness.Get(toDelete)
 	old, _ := p.CrudBusiness.Delete(toDelete)
 	data, _ := json.Marshal(&old)
 	return string(data), nil

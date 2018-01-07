@@ -22,11 +22,41 @@
 // SOFTWARE.
 package models
 
+import (
+	"fmt"
+	"log"
+	"strings"
+	"time"
+)
+
+// JSONTime for json datetime handle
+type JSONTime time.Time
+
+// MarshalJSON for json datetime handle
+func (t JSONTime) MarshalJSON() ([]byte, error) {
+	//do your serializing here
+	stamp := fmt.Sprintf("\"%s\"", time.Time(t).Format(time.RFC3339Nano))
+	return []byte(stamp), nil
+}
+
+// UnmarshalJSON for json datetime handle
+func (t *JSONTime) UnmarshalJSON(data []byte) error {
+	var ns = strings.Replace(string(data), "\"", "", 1000)
+	v, err := time.Parse(time.RFC3339Nano, ns)
+	if err != nil {
+		log.Printf("Error while decoding '%s' -> '%s'", ns, err)
+	}
+	*t = JSONTime(v)
+	return nil
+}
+
 // IPersistent interface
 type IPersistent interface {
 	GetID() string
 	SetName() string
 	SetID(string)
+	GetTimestamp() JSONTime
+	SetTimestamp(JSONTime)
 	Copy() IPersistent
 }
 

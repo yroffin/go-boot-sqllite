@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"time"
 
 	// for import driver
 	_ "github.com/mattn/go-sqlite3"
@@ -100,6 +101,8 @@ func (p *Store) uuid(entity interface{}, set func(id string)) (string, error) {
 func (p *Store) Create(entity models.IPersistent, set func(id string)) error {
 	// get entity name
 	var entityName = entity.SetName()
+	// Fix timestamp
+	entity.SetTimestamp(models.JSONTime(time.Now()))
 	// fix UUID
 	uuid, _ := p.uuid(entity, set)
 	// insert
@@ -113,6 +116,8 @@ func (p *Store) Create(entity models.IPersistent, set func(id string)) error {
 func (p *Store) Update(id string, entity models.IPersistent, set func(id string)) error {
 	// get entity name
 	var entityName = entity.SetName()
+	// Fix timestamp
+	entity.SetTimestamp(models.JSONTime(time.Now()))
 	// Fix ID
 	set(id)
 	// prepare statement
@@ -120,7 +125,9 @@ func (p *Store) Update(id string, entity models.IPersistent, set func(id string)
 	data, _ := json.Marshal(entity)
 	res, _ := statement.Exec(string(data), id)
 	rowAffected, _ := res.RowsAffected()
-	log.Printf("UPDATE %s with %v affected row(s)", entityName, rowAffected)
+	if rowAffected == 0 {
+		log.Printf("'%s' with id '%v' affected %d row(s)", "UPDATE "+entityName+" SET json = ? WHERE id = ?", id, rowAffected)
+	}
 	return nil
 }
 
@@ -132,7 +139,11 @@ func (p *Store) Delete(id string, entity models.IPersistent, set func(id string)
 	set(id)
 	// prepare statement
 	statement, _ := p.database.Prepare("DELETE FROM " + entityName + " WHERE id = ?")
-	statement.Exec(id)
+	res, _ := statement.Exec(id)
+	rowAffected, _ := res.RowsAffected()
+	if rowAffected == 0 {
+		log.Printf("'%s' with id '%v' affected %d row(s)", "DELETE FROM "+entityName+" WHERE id = ?", id, rowAffected)
+	}
 	return nil
 }
 
@@ -146,6 +157,7 @@ func (p *Store) Get(id string, entity models.IPersistent) error {
 	for rows.Next() {
 		rows.Scan(&id, &data)
 		var bin = []byte(data)
+		entity.SetID(id)
 		json.Unmarshal(bin, entity)
 	}
 	return nil
@@ -164,6 +176,7 @@ func (p *Store) GetAll(entity models.IPersistent, array models.IPersistents) err
 		var bin = []byte(data)
 		copy := entity.Copy()
 		json.Unmarshal(bin, &copy)
+		copy.SetID(id)
 		array.Add(copy)
 	}
 	return nil

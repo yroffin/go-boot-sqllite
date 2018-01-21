@@ -10,30 +10,18 @@
 [[projects]]
   name = "github.com/gorilla/mux"
   packages = ["."]
-  revision = "7f08801859139f86dfafd1c296e2cba9a80d292e"
-  version = "v1.6.0"
+  revision = "53c1911da2b537f792e7cafcb446b05ffe33b996"
+  version = "v1.6.1"
 
 [[projects]]
   name = "github.com/mattn/go-sqlite3"
   packages = ["."]
-  revision = "ed69081a91fd053f17672236b0dd52ba7485e1a3"
-  version = "v1.4.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/yroffin/goslides"
-  packages = ["bean","business","models","stores"]
-  revision = "afea7eff3176a436290260a6ca93ada70caec050"
-
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/net"
-  packages = ["context"]
-  revision = "d866cfc389cec985d6fda2859936a575a55a3ab6"
+  revision = "6c771bb9887719704b210e87e934f08be014bdb1"
+  version = "v1.6.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f2184213c3d8efd59159a8519fb4b7e26f856bac0fd2f9a1d702e6305e863ac8"
+  inputs-digest = "f2b38edf298c739f0b31d6813d8d2632c7c1bef84dc47cdda0dcc698c168009e"
   solver-name = "gps-cdcl"
   solver-version = 1

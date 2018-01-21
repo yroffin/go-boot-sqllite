@@ -22,7 +22,6 @@
 package main
 
 import (
-	"net/http"
 
 	// Apis
 	"github.com/yroffin/go-boot-sqllite/core/apis"
@@ -42,7 +41,4 @@ func main() {
 	m.Register("crud-business", &business.CrudBusiness{Bean: &bean.Bean{}})
 	m.Register("store-manager", &stores.Store{Bean: &bean.Bean{}})
 	m.Boot()
-
-	// After defining our server, we finally "listen and serve" on port 8080
-	http.ListenAndServe(":8080", nil)
 }

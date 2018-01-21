@@ -23,6 +23,7 @@
 package manager
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -88,6 +89,22 @@ func (m *Manager) Boot() error {
 		m.ArrayOfBeans[index].Validate(m.ArrayOfBeanNames[index])
 		log.Printf("Manager::Boot validation sucessfull for %v", m.ArrayOfBeanNames[index])
 	}
+
+	// scan flags
+	http := flag.Int("http", -1, "Http port")
+	https := flag.Int("https", -1, "Https port")
+	flag.Parse()
+	if *http != -1 {
+		// Declarre listener HTTP
+		log.Printf("Manager::Boot listen on %v", *http)
+		m.HTTP(*http)
+	}
+	if *https != -1 {
+		// Declarre listener HTTPS
+		log.Printf("Manager::Boot listen on %v", *https)
+		m.HTTPS(*https)
+	}
+	m.Wait()
 	return nil
 }
 

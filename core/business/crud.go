@@ -87,24 +87,24 @@ func (p *CrudBusiness) Get(toGet models.IPersistent) error {
 
 // Create create a new persistent bean
 func (p *CrudBusiness) Create(toCreate models.IPersistent) (interface{}, error) {
-	p.Store.Create(toCreate, func(id string) { toCreate.SetID(id) })
+	p.Store.Create(toCreate)
 	return toCreate, nil
 }
 
 // Update an existing bean
 func (p *CrudBusiness) Update(toUpdate models.IPersistent) (interface{}, error) {
-	p.Store.Update(toUpdate.GetID(), toUpdate, func(id string) { toUpdate.SetID(id) })
+	p.Store.Update(toUpdate.GetID(), toUpdate)
 	return toUpdate, nil
 }
 
 // Delete a bean
 func (p *CrudBusiness) Delete(toDelete models.IPersistent) (interface{}, error) {
-	p.Store.Delete(toDelete.GetID(), toDelete, func(id string) { toDelete.SetID(id) })
+	p.Store.Delete(toDelete.GetID(), toDelete)
 	return toDelete, nil
 }
 
 // Patch a bean
 func (p *CrudBusiness) Patch(toPatch models.IPersistent) (interface{}, error) {
-	p.Store.Update(toPatch.GetID(), toPatch, func(id string) { toPatch.SetID(id) })
+	p.Store.Update(toPatch.GetID(), toPatch)
 	return toPatch, nil
 }

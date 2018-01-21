@@ -82,7 +82,7 @@ func (p *Store) Validate(name string) error {
 }
 
 // uuid generates a random UUID according to RFC 4122
-func (p *Store) uuid(entity interface{}, set func(id string)) (string, error) {
+func (p *Store) uuid(entity interface{}) (string, error) {
 	uuid := make([]byte, 16)
 	n, err := io.ReadFull(rand.Reader, uuid)
 	if n != len(uuid) || err != nil {
@@ -93,18 +93,18 @@ func (p *Store) uuid(entity interface{}, set func(id string)) (string, error) {
 	// version 4 (pseudo-random); see section 4.1.3
 	uuid[6] = uuid[6]&^0xf0 | 0x40
 	var text = fmt.Sprintf("%x-%x-%x-%x-%x", uuid[0:4], uuid[4:6], uuid[6:8], uuid[8:10], uuid[10:])
-	set(text)
 	return text, nil
 }
 
 // Create this persistent bean n store
-func (p *Store) Create(entity models.IPersistent, set func(id string)) error {
+func (p *Store) Create(entity models.IPersistent) error {
 	// get entity name
 	var entityName = entity.SetName()
 	// Fix timestamp
 	entity.SetTimestamp(models.JSONTime(time.Now()))
 	// fix UUID
-	uuid, _ := p.uuid(entity, set)
+	uuid, _ := p.uuid(entity)
+	entity.SetID(uuid)
 	// insert
 	statement, _ := p.database.Prepare("INSERT INTO " + entityName + " (id, json) VALUES (?,?)")
 	data, _ := json.Marshal(entity)
@@ -113,13 +113,13 @@ func (p *Store) Create(entity models.IPersistent, set func(id string)) error {
 }
 
 // Update this persistent bean
-func (p *Store) Update(id string, entity models.IPersistent, set func(id string)) error {
+func (p *Store) Update(id string, entity models.IPersistent) error {
 	// get entity name
 	var entityName = entity.SetName()
 	// Fix timestamp
 	entity.SetTimestamp(models.JSONTime(time.Now()))
 	// Fix ID
-	set(id)
+	entity.SetID(id)
 	// prepare statement
 	statement, _ := p.database.Prepare("UPDATE " + entityName + " SET json = ? WHERE id = ?")
 	data, _ := json.Marshal(entity)
@@ -132,11 +132,11 @@ func (p *Store) Update(id string, entity models.IPersistent, set func(id string)
 }
 
 // Update this persistent bean
-func (p *Store) Delete(id string, entity models.IPersistent, set func(id string)) error {
+func (p *Store) Delete(id string, entity models.IPersistent) error {
 	// get entity name
 	var entityName = entity.SetName()
 	// Fix ID
-	set(id)
+	entity.SetID(id)
 	// prepare statement
 	statement, _ := p.database.Prepare("DELETE FROM " + entityName + " WHERE id = ?")
 	res, _ := statement.Exec(id)

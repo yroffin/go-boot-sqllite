@@ -116,7 +116,7 @@ func (p *API) append(ptr interface{}, path string, handler string, method string
 
 // Init initialize the APIf
 func (p *API) Init() error {
-	// inject SlideBusiness
+	// inject CrudBusiness
 	p.SetCrudBusiness = func(value interface{}) {
 		if assertion, ok := value.(*business.CrudBusiness); ok {
 			p.CrudBusiness = assertion
@@ -137,6 +137,7 @@ func (p *API) Init() error {
 	var arguments = arr[1:1]
 	// build all static acess to low level function (private)
 	for i := 0; i < len(p.methods); i++ {
+		log.Printf("Build static link for %v with %v", p.methods[i].path, arguments)
 		// compute rvalue
 		var rvalue = p.methods[i].addr.Call(arguments)[0]
 		// declare this new method
@@ -164,6 +165,13 @@ func (p *API) Declare(data APIMethod, intf interface{}) error {
 		log.Printf("Declare function() '%s' on '%s' with method '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (*p.RouterBean).GetName(), data.typeMime)
 		// declare it to the router
 		(*p.RouterBean).HandleFuncString(data.path, value, data.method, data.typeMime)
+		return nil
+	}
+	// verify type
+	if value, ok := intf.(func(string) (string, error)); ok {
+		log.Printf("Declare function() '%s' on '%s' with method with id '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (*p.RouterBean).GetName(), data.typeMime)
+		// declare it to the router
+		(*p.RouterBean).HandleFuncStringWithId(data.path, value, data.method, data.typeMime)
 		return nil
 	}
 	// Error case
@@ -288,7 +296,12 @@ func (p *API) GenericGetByID(id string, toGet models.IPersistent) (string, error
 // GenericPost adefault method
 func (p *API) GenericPost(body string, toCreate models.IPersistent) (string, error) {
 	var bin = []byte(body)
-	json.Unmarshal(bin, &toCreate)
+	result := json.Unmarshal(bin, &toCreate)
+	// check unmashal errors
+	if result != nil {
+		log.Printf("Error, while Unmarshaling body %v - %v", body, result)
+		return body, result
+	}
 	bean, _ := p.CrudBusiness.Create(toCreate)
 	data, _ := json.Marshal(&bean)
 	return string(data), nil

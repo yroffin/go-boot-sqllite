@@ -88,6 +88,16 @@ func (p *Router) HandleFuncString(path string, f func() (string, error), method 
 	}
 }
 
+// HandleFuncStringWithId declare a string handler
+func (p *Router) HandleFuncStringWithId(path string, f func(string) (string, error), method string, content string) {
+	log.Printf("Router::HandleFunc '%s' with method '%s' with type mime '%s'", path, method, content)
+	// declare it to the router
+	var res = p.Router.HandleFunc(path, p.HandlerStaticStringWithId(f)).Methods(method)
+	if len(content) > 0 {
+		res.Headers("Content-Type", content)
+	}
+}
+
 // HandlerStaticNotFound Not found handler
 func (p *Router) HandlerStaticNotFound() func(w http.ResponseWriter, r *http.Request) {
 	anonymous := func(w http.ResponseWriter, r *http.Request) {
@@ -142,6 +152,30 @@ func (p *Router) HandlerStaticString(method func() (string, error)) func(w http.
 		// content
 		w.Header().Set("Content-type", "text/html")
 		data, err := method()
+		if err != nil {
+			w.WriteHeader(400)
+			fmt.Fprintf(w, "{\"message\":\"\"}")
+			return
+		}
+		w.WriteHeader(200)
+		w.Write([]byte(data))
+	}
+	return anonymous
+}
+
+// HandlerStaticString render string
+func (p *Router) HandlerStaticStringWithId(method func(string) (string, error)) func(w http.ResponseWriter, r *http.Request) {
+	anonymous := func(w http.ResponseWriter, r *http.Request) {
+		// security header
+		w.Header().Set("Strict-Transport-Security", "")
+		w.Header().Set("Content-Security-Policy", "")
+		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("Referrer-Policy", "same-origin")
+		// content
+		w.Header().Set("Content-type", "text/html")
+		data, err := method(mux.Vars(r)["id"])
 		if err != nil {
 			w.WriteHeader(400)
 			fmt.Fprintf(w, "{\"message\":\"\"}")

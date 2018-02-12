@@ -56,6 +56,7 @@ type API struct {
 	HandlerGetByID    func(id string) (string, error)
 	HandlerGetAll     func() (string, error)
 	HandlerPost       func(body string) (string, error)
+	HandlerTasks      func(name string, body string) (string, error)
 	HandlerPutByID    func(id string, body string) (string, error)
 	HandlerDeleteByID func(id string) (string, error)
 	HandlerPatchByID  func(id string, body string) (string, error)
@@ -215,14 +216,25 @@ func (p *API) HandlerStaticPost() func(w http.ResponseWriter, r *http.Request) {
 	anonymous := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-type", "application/json")
 		body, _ := ioutil.ReadAll(r.Body)
-		data, err := p.HandlerPost(string(body))
-		if err != nil {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "{\"message\":\"\"}")
-			return
+		if len(r.URL.Query().Get("task")) > 0 {
+			data, err := p.HandlerTasks(r.URL.Query().Get("task"), string(body))
+			if err != nil {
+				w.WriteHeader(400)
+				fmt.Fprintf(w, "{\"message\":\"\"}")
+				return
+			}
+			w.WriteHeader(202)
+			fmt.Fprintf(w, data)
+		} else {
+			data, err := p.HandlerPost(string(body))
+			if err != nil {
+				w.WriteHeader(400)
+				fmt.Fprintf(w, "{\"message\":\"\"}")
+				return
+			}
+			w.WriteHeader(201)
+			fmt.Fprintf(w, data)
 		}
-		w.WriteHeader(201)
-		fmt.Fprintf(w, data)
 	}
 	return anonymous
 }

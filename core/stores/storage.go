@@ -131,7 +131,7 @@ func (p *Store) Update(id string, entity models.IPersistent) error {
 	return nil
 }
 
-// Update this persistent bean
+// Delete this persistent bean
 func (p *Store) Delete(id string, entity models.IPersistent) error {
 	// get entity name
 	var entityName = entity.SetName()
@@ -143,6 +143,20 @@ func (p *Store) Delete(id string, entity models.IPersistent) error {
 	rowAffected, _ := res.RowsAffected()
 	if rowAffected == 0 {
 		log.Printf("'%s' with id '%v' affected %d row(s)", "DELETE FROM "+entityName+" WHERE id = ?", id, rowAffected)
+	}
+	return nil
+}
+
+// Truncate method
+func (p *Store) Truncate(entity models.IPersistent) error {
+	// get entity name
+	var entityName = entity.SetName()
+	// prepare statement
+	statement, _ := p.database.Prepare("DELETE FROM " + entityName)
+	res, _ := statement.Exec()
+	rowAffected, _ := res.RowsAffected()
+	if rowAffected == 0 {
+		log.Printf("'%s' affected %d row(s)", "DELETE FROM "+entityName, rowAffected)
 	}
 	return nil
 }

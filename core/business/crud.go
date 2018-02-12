@@ -103,6 +103,12 @@ func (p *CrudBusiness) Delete(toDelete models.IPersistent) (interface{}, error) 
 	return toDelete, nil
 }
 
+// Delete a bean
+func (p *CrudBusiness) Truncate(toTruncate models.IPersistent) (interface{}, error) {
+	p.Store.Truncate(toTruncate)
+	return "Truncated", nil
+}
+
 // Patch a bean
 func (p *CrudBusiness) Patch(toPatch models.IPersistent) (interface{}, error) {
 	p.Store.Update(toPatch.GetID(), toPatch)

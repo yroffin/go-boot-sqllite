@@ -190,7 +190,7 @@ func (p *API) HandlerStaticGetAll() func(w http.ResponseWriter, r *http.Request)
 			return
 		}
 		w.WriteHeader(200)
-		fmt.Fprintf(w, data)
+		w.Write([]byte(data))
 	}
 	return anonymous
 }
@@ -206,7 +206,7 @@ func (p *API) HandlerStaticGetByID() func(w http.ResponseWriter, r *http.Request
 			return
 		}
 		w.WriteHeader(200)
-		fmt.Fprintf(w, data)
+		w.Write([]byte(data))
 	}
 	return anonymous
 }
@@ -224,7 +224,7 @@ func (p *API) HandlerStaticPost() func(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			w.WriteHeader(202)
-			fmt.Fprintf(w, data)
+			w.Write([]byte(data))
 		} else {
 			data, err := p.HandlerPost(string(body))
 			if err != nil {
@@ -233,7 +233,7 @@ func (p *API) HandlerStaticPost() func(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			w.WriteHeader(201)
-			fmt.Fprintf(w, data)
+			w.Write([]byte(data))
 		}
 	}
 	return anonymous
@@ -251,7 +251,7 @@ func (p *API) HandlerStaticPutByID() func(w http.ResponseWriter, r *http.Request
 			return
 		}
 		w.WriteHeader(200)
-		fmt.Fprintf(w, data)
+		w.Write([]byte(data))
 	}
 	return anonymous
 }
@@ -267,7 +267,7 @@ func (p *API) HandlerStaticDeleteByID() func(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		w.WriteHeader(200)
-		fmt.Fprintf(w, data)
+		w.Write([]byte(data))
 	}
 	return anonymous
 }
@@ -284,7 +284,7 @@ func (p *API) HandlerStaticPatchByID() func(w http.ResponseWriter, r *http.Reque
 			return
 		}
 		w.WriteHeader(200)
-		fmt.Fprintf(w, data)
+		w.Write([]byte(data))
 	}
 	return anonymous
 }

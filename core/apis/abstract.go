@@ -57,6 +57,7 @@ type API struct {
 	HandlerGetAll     func() (string, error)
 	HandlerPost       func(body string) (string, error)
 	HandlerTasks      func(name string, body string) (string, error)
+	HandlerTasksByID  func(id string, name string, body string) (string, error)
 	HandlerPutByID    func(id string, body string) (string, error)
 	HandlerDeleteByID func(id string) (string, error)
 	HandlerPatchByID  func(id string, body string) (string, error)
@@ -98,6 +99,7 @@ func (p *API) ScanHandler(ptr interface{}) {
 			p.append(ptr, field.Tag.Get("path")+"/{id:[0-9a-zA-Z-_]*}", "HandlerStaticPutByID", "PUT", "application/json")
 			p.append(ptr, field.Tag.Get("path")+"/{id:[0-9a-zA-Z-_]*}", "HandlerStaticDeleteByID", "DELETE", "application/json")
 			p.append(ptr, field.Tag.Get("path")+"/{id:[0-9a-zA-Z-_]*}", "HandlerStaticPatchByID", "PATCH", "application/json")
+			p.append(ptr, field.Tag.Get("path")+"/{id:[0-9a-zA-Z-_]*}", "HandlerStaticPostByID", "POST", "application/json")
 		}
 	}
 	// call bean init
@@ -239,6 +241,34 @@ func (p *API) HandlerStaticPost() func(w http.ResponseWriter, r *http.Request) {
 	return anonymous
 }
 
+// HandlerStaticPostByID is the POST handler
+func (p *API) HandlerStaticPostByID() func(w http.ResponseWriter, r *http.Request) {
+	anonymous := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-type", "application/json")
+		body, _ := ioutil.ReadAll(r.Body)
+		if len(r.URL.Query().Get("task")) > 0 {
+			data, err := p.HandlerTasksByID(mux.Vars(r)["id"], r.URL.Query().Get("task"), string(body))
+			if err != nil {
+				w.WriteHeader(400)
+				fmt.Fprintf(w, "{\"message\":\"\"}")
+				return
+			}
+			w.WriteHeader(202)
+			w.Write([]byte(data))
+		} else {
+			data, err := p.HandlerPost(string(body))
+			if err != nil {
+				w.WriteHeader(400)
+				fmt.Fprintf(w, "{\"message\":\"\"}")
+				return
+			}
+			w.WriteHeader(201)
+			w.Write([]byte(data))
+		}
+	}
+	return anonymous
+}
+
 // HandlerStaticPutByID is the PUT by ID handler
 func (p *API) HandlerStaticPutByID() func(w http.ResponseWriter, r *http.Request) {
 	anonymous := func(w http.ResponseWriter, r *http.Request) {
@@ -299,10 +329,16 @@ func (p *API) GenericGetAll(toGet models.IPersistent, toGets models.IPersistents
 
 // GenericGetByID default method
 func (p *API) GenericGetByID(id string, toGet models.IPersistent) (string, error) {
-	toGet.SetID(id)
-	p.CrudBusiness.Get(toGet)
+	p.GetByID(id, toGet)
 	data, _ := json.Marshal(&toGet)
 	return string(data), nil
+}
+
+// GetByID default method
+func (p *API) GetByID(id string, toGet models.IPersistent) error {
+	toGet.SetID(id)
+	p.CrudBusiness.Get(toGet)
+	return nil
 }
 
 // GenericPost adefault method

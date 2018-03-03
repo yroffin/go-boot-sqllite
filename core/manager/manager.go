@@ -43,6 +43,10 @@ type Manager struct {
 	MapOfBeans map[string]bean.IBean
 	// sync wait group
 	wg sync.WaitGroup
+	// Properties
+	phttp *int
+	// Properties
+	phttps *int
 }
 
 // IManager interface
@@ -72,6 +76,15 @@ func (m *Manager) Register(name string, b bean.IBean) error {
 	return nil
 }
 
+// CommandLine Init
+func (m *Manager) CommandLine() error {
+	// scan flags
+	m.phttp = flag.Int("http", -1, "Http port")
+	m.phttps = flag.Int("https", -1, "Https port")
+	flag.Parse()
+	return nil
+}
+
 // Boot Init this manager
 func (m *Manager) Boot() error {
 	log.Printf("Manager::Boot inject")
@@ -90,19 +103,15 @@ func (m *Manager) Boot() error {
 		log.Printf("Manager::Boot validation sucessfull for %v", m.ArrayOfBeanNames[index])
 	}
 
-	// scan flags
-	http := flag.Int("http", -1, "Http port")
-	https := flag.Int("https", -1, "Https port")
-	flag.Parse()
-	if *http != -1 {
+	if *m.phttp != -1 {
 		// Declarre listener HTTP
-		log.Printf("Manager::Boot listen on %v", *http)
-		m.HTTP(*http)
+		log.Printf("Manager::Boot listen on %v", *m.phttp)
+		m.HTTP(*m.phttp)
 	}
-	if *https != -1 {
+	if *m.phttps != -1 {
 		// Declarre listener HTTPS
-		log.Printf("Manager::Boot listen on %v", *https)
-		m.HTTPS(*https)
+		log.Printf("Manager::Boot listen on %v", *m.phttps)
+		m.HTTPS(*m.phttps)
 	}
 	m.Wait()
 	return nil

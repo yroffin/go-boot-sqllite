@@ -53,6 +53,7 @@ type Manager struct {
 type IManager interface {
 	Init() error
 	Register() error
+	CommandLine() error
 	Boot() error
 	// Scan and inject bean in this class
 	Inject(interface{}, string, func(interface{})) error

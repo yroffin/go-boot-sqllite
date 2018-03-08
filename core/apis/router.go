@@ -28,20 +28,27 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/yroffin/go-boot-sqllite/core/bean"
+	core_bean "github.com/yroffin/go-boot-sqllite/core/bean"
+	core_services "github.com/yroffin/go-boot-sqllite/core/services"
 )
 
 // Router internal members
 type Router struct {
-	// Base component
-	*bean.Bean
+	// members
+	*core_services.SERVICE
 	// mux router
 	Router *mux.Router
 }
 
 // IRouter Test all package methods
 type IRouter interface {
-	bean.IBean
+	core_bean.IBean
+}
+
+// New constructor
+func (p *Router) New() IRouter {
+	bean := Router{SERVICE: &core_services.SERVICE{Bean: &core_bean.Bean{}}}
+	return &bean
 }
 
 // Init Init this API

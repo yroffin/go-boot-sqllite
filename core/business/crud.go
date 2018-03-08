@@ -26,15 +26,16 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/yroffin/go-boot-sqllite/core/bean"
+	core_bean "github.com/yroffin/go-boot-sqllite/core/bean"
 	"github.com/yroffin/go-boot-sqllite/core/models"
+	core_services "github.com/yroffin/go-boot-sqllite/core/services"
 	"github.com/yroffin/go-boot-sqllite/core/stores"
 )
 
 // CrudBusiness internal members
 type CrudBusiness struct {
-	// Base component
-	*bean.Bean
+	// members
+	*core_services.SERVICE
 	// Store with injection mecanism
 	SetStore func(interface{}) `bean:"store-manager"`
 	Store    *stores.Store
@@ -42,12 +43,18 @@ type CrudBusiness struct {
 
 // ICrudBusiness interface
 type ICrudBusiness interface {
-	bean.IBean
-	Get(models.IPersistent) (interface{}, error)
+	core_bean.IBean
+	Get(models.IPersistent) error
 	Create(models.IPersistent) (interface{}, error)
 	Update(models.IPersistent) (interface{}, error)
 	Delete(models.IPersistent) (interface{}, error)
 	Patch(models.IPersistent) (interface{}, error)
+}
+
+// New constructor
+func (p *CrudBusiness) New() ICrudBusiness {
+	bean := CrudBusiness{SERVICE: &core_services.SERVICE{Bean: &core_bean.Bean{}}}
+	return &bean
 }
 
 // Init this bean

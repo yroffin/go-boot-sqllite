@@ -34,14 +34,15 @@ import (
 	// for import driver
 	_ "github.com/mattn/go-sqlite3"
 
-	"github.com/yroffin/go-boot-sqllite/core/bean"
+	core_bean "github.com/yroffin/go-boot-sqllite/core/bean"
 	"github.com/yroffin/go-boot-sqllite/core/models"
+	core_services "github.com/yroffin/go-boot-sqllite/core/services"
 )
 
 // Store internal members
 type Store struct {
-	// Base component
-	*bean.Bean
+	// members
+	*core_services.SERVICE
 	// Store SQL lite
 	database *sql.DB
 	// Tables
@@ -52,7 +53,13 @@ type Store struct {
 
 // IStore interface
 type IStore interface {
-	bean.IBean
+	core_bean.IBean
+}
+
+// New constructor
+func (p *Store) New(tables []string, dbpath string) IStore {
+	bean := Store{SERVICE: &core_services.SERVICE{Bean: &core_bean.Bean{}}, Tables: tables, DbPath: dbpath}
+	return &bean
 }
 
 // Init Init this bean

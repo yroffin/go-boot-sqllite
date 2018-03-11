@@ -27,6 +27,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+
 	core_bean "github.com/yroffin/go-boot-sqllite/core/bean"
 	core_services "github.com/yroffin/go-boot-sqllite/core/services"
 )
@@ -67,18 +68,13 @@ func (p *Router) PostConstruct(name string) error {
 	// Fix default handler
 	//p.Engine.HandleMethodNotAllowed = http.HandlerFunc(p.HandlerStaticNotAllowed())
 	//p.Engine = http.HandlerFunc(p.HandlerStaticNotFound())
-	p.Engine.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
-
 	return nil
 }
 
 // Validate Init this API
 func (p *Router) Validate(name string) error {
 	log.Printf("Router::Validate - router validation")
+	p.Engine.Static("/public", "./resources/static")
 	return nil
 }
 
@@ -92,6 +88,13 @@ func (p *Router) HTTP(port int) error {
 // HTTP boot http service
 func (p *Router) HTTPS(port int) error {
 	return nil
+}
+
+// HandleFunc declare a handler
+func (p *Router) HandleFuncTonic(path string, f func() (interface{}, error), method string, content string) {
+	log.Printf("Router::HandleFunc '%s' with method '%s' with type mime '%s'", path, method, content)
+	// declare it to the router
+	p.Engine.Handle(method, path, p.HandlerStaticJson(f, 200, ""))
 }
 
 // HandleFunc declare a handler
@@ -137,6 +140,31 @@ func (p *Router) HandlerStaticNotAllowed() func(c *gin.Context) {
 		// content
 		c.Header("Content-type", "text/html")
 		c.String(405, "{\"message\":\"Not allowed\"}")
+	}
+	return anonymous
+}
+
+// HandlerStaticString render string
+func (p *Router) HandlerStaticJson(method func() (interface{}, error), code int, content string) func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
+		// security header
+		c.Header("Strict-Transport-Security", "")
+		c.Header("Content-Security-Policy", "")
+		c.Header("X-Frame-Options", "SAMEORIGIN")
+		c.Header("X-XSS-Protection", "1; mode=block")
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("Referrer-Policy", "same-origin")
+		// content
+		c.Header("Content-type", "text/html")
+		data, err := method()
+		if err != nil {
+			c.String(400, "{\"message\":\"\"}")
+			return
+		}
+		c.JSON(code, data)
+		if len(content) > 0 {
+			c.Header("Content-Type", content)
+		}
 	}
 	return anonymous
 }

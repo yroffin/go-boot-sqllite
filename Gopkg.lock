@@ -20,16 +20,10 @@
   version = "v1.0.0"
 
 [[projects]]
-  name = "github.com/gorilla/context"
-  packages = ["."]
-  revision = "1ea25387ff6f684839d82767c1733ff4d4d15d0a"
-  version = "v1.1"
-
-[[projects]]
-  name = "github.com/gorilla/mux"
-  packages = ["."]
-  revision = "53c1911da2b537f792e7cafcb446b05ffe33b996"
-  version = "v1.6.1"
+  branch = "master"
+  name = "github.com/loopfz/gadgeto"
+  packages = ["tonic"]
+  revision = "a6c0854d9fa4a991d4386e7448e81de934684328"
 
 [[projects]]
   name = "github.com/mattn/go-isatty"
@@ -42,6 +36,12 @@
   packages = ["."]
   revision = "6c771bb9887719704b210e87e934f08be014bdb1"
   version = "v1.6.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/satori/go.uuid"
+  packages = ["."]
+  revision = "36e9d2ebbde5e3f13ab2e25625fd453271d6522e"
 
 [[projects]]
   name = "github.com/ugorji/go"
@@ -70,6 +70,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fdd9c06cce354c51c36e0f15974d3e984c61f459644ae963f12c029179c8d7d3"
+  inputs-digest = "b254733c5cc458f1326103c643a8c2dbc9150316fcc034a38d679ef7ce1b596d"
   solver-name = "gps-cdcl"
   solver-version = 1

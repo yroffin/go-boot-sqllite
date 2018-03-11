@@ -50,14 +50,14 @@ type API struct {
 	SetCrudBusiness func(interface{}) `bean:"crud-business"`
 	CrudBusiness    *business.CrudBusiness
 	// Crud
-	HandlerGetByID    func(id string) (string, error)
-	HandlerGetAll     func() (string, error)
-	HandlerPost       func(body string) (string, error)
-	HandlerTasks      func(name string, body string) (string, error)
-	HandlerTasksByID  func(id string, name string, body string) (string, error)
-	HandlerPutByID    func(id string, body string) (string, error)
-	HandlerDeleteByID func(id string) (string, error)
-	HandlerPatchByID  func(id string, body string) (string, error)
+	HandlerGetByID    func(id string) (interface{}, error)
+	HandlerGetAll     func() (interface{}, error)
+	HandlerPost       func(body string) (interface{}, error)
+	HandlerTasks      func(name string, body string) (interface{}, error)
+	HandlerTasksByID  func(id string, name string, body string) (interface{}, error)
+	HandlerPutByID    func(id string, body string) (interface{}, error)
+	HandlerDeleteByID func(id string) (interface{}, error)
+	HandlerPatchByID  func(id string, body string) (interface{}, error)
 }
 
 // APIMethod single structure to modelise api declaration
@@ -76,11 +76,6 @@ type APIInterface interface {
 	Declare(APIMethod, interface{})
 	HandlerStatic() func(w http.ResponseWriter, r *http.Request)
 	HandlerGetByID(id string) (string, error)
-}
-
-// getVar get var this API
-func (p *API) getVar(c *gin.Context, key string) string {
-	return c.Param(key)
 }
 
 // ScanHandler this API
@@ -192,7 +187,7 @@ func (p *API) HandlerStaticGetAll() func(c *gin.Context) {
 			c.String(400, "{\"message\":\"\"}")
 			return
 		}
-		c.String(200, data)
+		c.IndentedJSON(200, data)
 	}
 	return anonymous
 }
@@ -201,12 +196,12 @@ func (p *API) HandlerStaticGetAll() func(c *gin.Context) {
 func (p *API) HandlerStaticGetByID() func(c *gin.Context) {
 	anonymous := func(c *gin.Context) {
 		c.Header("Content-type", "application/json")
-		data, err := p.HandlerGetByID(p.getVar(c, "id"))
+		data, err := p.HandlerGetByID(c.Param("id"))
 		if err != nil {
 			c.String(400, "{\"message\":\"\"}")
 			return
 		}
-		c.String(200, data)
+		c.IndentedJSON(200, data)
 	}
 	return anonymous
 }
@@ -222,14 +217,14 @@ func (p *API) HandlerStaticPost() func(c *gin.Context) {
 				c.String(400, "{\"message\":\"\"}")
 				return
 			}
-			c.String(202, data)
+			c.IndentedJSON(202, data)
 		} else {
 			data, err := p.HandlerPost(string(body))
 			if err != nil {
 				c.String(400, "{\"message\":\"\"}")
 				return
 			}
-			c.String(201, data)
+			c.IndentedJSON(201, data)
 		}
 	}
 	return anonymous
@@ -241,19 +236,19 @@ func (p *API) HandlerStaticPostByID() func(c *gin.Context) {
 		c.Header("Content-type", "application/json")
 		body, _ := ioutil.ReadAll(c.Request.Body)
 		if len(c.Query("task")) > 0 {
-			data, err := p.HandlerTasksByID(p.getVar(c, "id"), c.Query("task"), string(body))
+			data, err := p.HandlerTasksByID(c.Param("id"), c.Query("task"), string(body))
 			if err != nil {
 				c.String(400, "{\"message\":\"\"}")
 				return
 			}
-			c.String(202, data)
+			c.IndentedJSON(202, data)
 		} else {
 			data, err := p.HandlerPost(string(body))
 			if err != nil {
 				c.String(400, "{\"message\":\"\"}")
 				return
 			}
-			c.String(201, data)
+			c.IndentedJSON(201, data)
 		}
 	}
 	return anonymous
@@ -264,12 +259,12 @@ func (p *API) HandlerStaticPutByID() func(c *gin.Context) {
 	anonymous := func(c *gin.Context) {
 		c.Header("Content-type", "application/json")
 		body, _ := ioutil.ReadAll(c.Request.Body)
-		data, err := p.HandlerPutByID(p.getVar(c, "id"), string(body))
+		data, err := p.HandlerPutByID(c.Param("id"), string(body))
 		if err != nil {
 			c.String(400, "{\"message\":\"\"}")
 			return
 		}
-		c.String(200, data)
+		c.IndentedJSON(200, data)
 	}
 	return anonymous
 }
@@ -278,12 +273,12 @@ func (p *API) HandlerStaticPutByID() func(c *gin.Context) {
 func (p *API) HandlerStaticDeleteByID() func(c *gin.Context) {
 	anonymous := func(c *gin.Context) {
 		c.Header("Content-type", "application/json")
-		data, err := p.HandlerDeleteByID(p.getVar(c, "id"))
+		data, err := p.HandlerDeleteByID(c.Param("id"))
 		if err != nil {
 			c.String(400, "{\"message\":\"\"}")
 			return
 		}
-		c.String(200, data)
+		c.IndentedJSON(200, data)
 	}
 	return anonymous
 }
@@ -293,29 +288,26 @@ func (p *API) HandlerStaticPatchByID() func(c *gin.Context) {
 	anonymous := func(c *gin.Context) {
 		c.Header("Content-type", "application/json")
 		body, _ := ioutil.ReadAll(c.Request.Body)
-		data, err := p.HandlerPatchByID(p.getVar(c, "id"), string(body))
+		data, err := p.HandlerPatchByID(c.Param("id"), string(body))
 		if err != nil {
 			c.String(400, "{\"message\":\"\"}")
 			return
 		}
-		c.String(200, data)
+		c.IndentedJSON(200, data)
 	}
 	return anonymous
 }
 
 // GenericGetAll default method
-func (p *API) GenericGetAll(toGet models.IPersistent, toGets models.IPersistents) (string, error) {
+func (p *API) GenericGetAll(toGet models.IPersistent, toGets models.IPersistents) (interface{}, error) {
 	p.CrudBusiness.GetAll(toGet, toGets)
-	var arr = toGets.Get()
-	data, _ := json.Marshal(&arr)
-	return string(data), nil
+	return toGets.Get(), nil
 }
 
 // GenericGetByID default method
-func (p *API) GenericGetByID(id string, toGet models.IPersistent) (string, error) {
+func (p *API) GenericGetByID(id string, toGet models.IPersistent) (interface{}, error) {
 	p.GetByID(id, toGet)
-	data, _ := json.Marshal(&toGet)
-	return string(data), nil
+	return toGet, nil
 }
 
 // GetByID default method
@@ -326,7 +318,7 @@ func (p *API) GetByID(id string, toGet models.IPersistent) error {
 }
 
 // GenericPost adefault method
-func (p *API) GenericPost(body string, toCreate models.IPersistent) (string, error) {
+func (p *API) GenericPost(body string, toCreate models.IPersistent) (interface{}, error) {
 	var bin = []byte(body)
 	result := json.Unmarshal(bin, &toCreate)
 	// check unmashal errors
@@ -335,35 +327,31 @@ func (p *API) GenericPost(body string, toCreate models.IPersistent) (string, err
 		return body, result
 	}
 	bean, _ := p.CrudBusiness.Create(toCreate)
-	data, _ := json.Marshal(&bean)
-	return string(data), nil
+	return bean, nil
 }
 
 // GenericPutByID default method
-func (p *API) GenericPutByID(id string, body string, toUpdate models.IPersistent) (string, error) {
+func (p *API) GenericPutByID(id string, body string, toUpdate models.IPersistent) (interface{}, error) {
 	toUpdate.SetID(id)
 	var bin = []byte(body)
 	json.Unmarshal(bin, &toUpdate)
 	bean, _ := p.CrudBusiness.Update(toUpdate)
-	data, _ := json.Marshal(&bean)
-	return string(data), nil
+	return bean, nil
 }
 
 // GenericPatchByID default method
-func (p *API) GenericPatchByID(id string, body string, toPatch models.IPersistent) (string, error) {
+func (p *API) GenericPatchByID(id string, body string, toPatch models.IPersistent) (interface{}, error) {
 	toPatch.SetID(id)
 	var bin = []byte(body)
 	json.Unmarshal(bin, &toPatch)
 	bean, _ := p.CrudBusiness.Patch(toPatch)
-	data, _ := json.Marshal(&bean)
-	return string(data), nil
+	return bean, nil
 }
 
 // GenericDeleteByID default method
-func (p *API) GenericDeleteByID(id string, toDelete models.IPersistent) (string, error) {
+func (p *API) GenericDeleteByID(id string, toDelete models.IPersistent) (interface{}, error) {
 	toDelete.SetID(id)
 	p.CrudBusiness.Get(toDelete)
 	old, _ := p.CrudBusiness.Delete(toDelete)
-	data, _ := json.Marshal(&old)
-	return string(data), nil
+	return old, nil
 }

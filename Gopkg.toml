@@ -20,6 +20,6 @@
 #  version = "2.4.0"
 
 
-[[constraint]]
+[[override]]
   branch = "master"
-  name = "github.com/yroffin/goslides"
+  name = "github.com/satori/go.uuid"

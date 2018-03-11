@@ -31,7 +31,7 @@ import (
 	"github.com/yroffin/go-boot-sqllite/core/stores"
 )
 
-// Rest()
+// Main
 func main() {
 	// declare manager and boot it
 	var m = manager.Manager{}

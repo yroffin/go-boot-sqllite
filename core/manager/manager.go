@@ -31,6 +31,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/yroffin/go-boot-sqllite/core/apis"
 	"github.com/yroffin/go-boot-sqllite/core/bean"
 )
 
@@ -87,7 +88,7 @@ func (m *Manager) CommandLine() error {
 }
 
 // Boot Init this manager
-func (m *Manager) Boot() error {
+func (m *Manager) Boot(routerBeanName string) error {
 	log.Printf("Manager::Boot inject")
 	for index := 0; index < len(m.ArrayOfBeans); index++ {
 		m.Inject(m.ArrayOfBeanNames[index], m.ArrayOfBeans[index])
@@ -104,15 +105,22 @@ func (m *Manager) Boot() error {
 		log.Printf("Manager::Boot validation sucessfull for %v", m.ArrayOfBeanNames[index])
 	}
 
+	var router apis.IRouter
+	if assertion, ok := m.MapOfBeans[routerBeanName].(apis.IRouter); ok {
+		router = assertion
+	} else {
+		log.Fatalf("Unable to validate bean %s", routerBeanName)
+	}
+
 	if *m.phttp != -1 {
 		// Declarre listener HTTP
 		log.Printf("Manager::Boot listen on %v", *m.phttp)
-		m.HTTP(*m.phttp)
+		router.HTTP(*m.phttp)
 	}
 	if *m.phttps != -1 {
 		// Declarre listener HTTPS
 		log.Printf("Manager::Boot listen on %v", *m.phttps)
-		m.HTTPS(*m.phttps)
+		router.HTTPS(*m.phttps)
 	}
 	m.Wait()
 	return nil

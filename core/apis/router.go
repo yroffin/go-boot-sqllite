@@ -23,11 +23,10 @@
 package apis
 
 import (
-	"fmt"
 	"log"
-	"net/http"
+	"strconv"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	core_bean "github.com/yroffin/go-boot-sqllite/core/bean"
 	core_services "github.com/yroffin/go-boot-sqllite/core/services"
 )
@@ -37,12 +36,16 @@ type Router struct {
 	// members
 	*core_services.SERVICE
 	// mux router
-	Router *mux.Router
+	Engine *gin.Engine
 }
 
 // IRouter Test all package methods
 type IRouter interface {
 	core_bean.IBean
+	// Http boot
+	HTTP(port int) error
+	// Https boot
+	HTTPS(port int) error
 }
 
 // New constructor
@@ -60,136 +63,148 @@ func (p *Router) Init() error {
 func (p *Router) PostConstruct(name string) error {
 	log.Printf("Router::PostConstruct - router creation")
 	// define all routes
-	p.Router = mux.NewRouter()
+	p.Engine = gin.Default()
 	// Fix default handler
-	p.Router.MethodNotAllowedHandler = http.HandlerFunc(p.HandlerStaticNotAllowed())
-	p.Router.NotFoundHandler = http.HandlerFunc(p.HandlerStaticNotFound())
+	//p.Engine.HandleMethodNotAllowed = http.HandlerFunc(p.HandlerStaticNotAllowed())
+	//p.Engine = http.HandlerFunc(p.HandlerStaticNotFound())
+	p.Engine.GET("/ping", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "pong",
+		})
+	})
+
 	return nil
 }
 
 // Validate Init this API
 func (p *Router) Validate(name string) error {
 	log.Printf("Router::Validate - router validation")
-	// handle now all requests
-	http.Handle("/", p.Router)
+	return nil
+}
+
+// HTTP boot http service
+func (p *Router) HTTP(port int) error {
+	gin.SetMode("debug")
+	p.Engine.Run(":" + strconv.Itoa(port))
+	return nil
+}
+
+// HTTP boot http service
+func (p *Router) HTTPS(port int) error {
 	return nil
 }
 
 // HandleFunc declare a handler
-func (p *Router) HandleFunc(path string, f func(http.ResponseWriter, *http.Request), method string, content string) {
+func (p *Router) HandleFunc(path string, f func(c *gin.Context), method string, content string) {
 	log.Printf("Router::HandleFunc '%s' with method '%s' with type mime '%s'", path, method, content)
 	// declare it to the router
-	var res = p.Router.HandleFunc(path, p.HandlerStatic(f)).Methods(method)
-	if len(content) > 0 {
-		res.Headers("Content-Type", content)
-	}
+	p.Engine.Handle(method, path, p.HandlerStatic(f, content))
 }
 
 // HandleFuncString declare a string handler
 func (p *Router) HandleFuncString(path string, f func() (string, error), method string, content string) {
 	log.Printf("Router::HandleFunc '%s' with method '%s' with type mime '%s'", path, method, content)
 	// declare it to the router
-	var res = p.Router.HandleFunc(path, p.HandlerStaticString(f)).Methods(method)
-	if len(content) > 0 {
-		res.Headers("Content-Type", content)
-	}
+	p.Engine.Handle(method, path, p.HandlerStaticString(f, content))
 }
 
 // HandleFuncStringWithId declare a string handler
 func (p *Router) HandleFuncStringWithId(path string, f func(string) (string, error), method string, content string) {
 	log.Printf("Router::HandleFunc '%s' with method '%s' with type mime '%s'", path, method, content)
 	// declare it to the router
-	var res = p.Router.HandleFunc(path, p.HandlerStaticStringWithId(f)).Methods(method)
-	if len(content) > 0 {
-		res.Headers("Content-Type", content)
-	}
+	p.Engine.Handle(method, path, p.HandlerStaticStringWithId(f, content))
 }
 
 // HandlerStaticNotFound Not found handler
-func (p *Router) HandlerStaticNotFound() func(w http.ResponseWriter, r *http.Request) {
-	anonymous := func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Request Url %v", r.URL)
-		log.Printf("Request Headers %v", r.Header)
-		log.Printf("Request Encoding %v", r.TransferEncoding)
-		w.Header().Set("Content-type", "text/plain")
-		w.WriteHeader(404)
-		fmt.Fprintf(w, "Not found")
+func (p *Router) HandlerStaticNotFound() func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
+		log.Printf("Request request %v", c.Request)
+		log.Printf("Request header %v", c.Request.Header)
+		log.Printf("Request Encoding %v", c.Request.TransferEncoding)
+		// content
+		c.Header("Content-type", "text/html")
+		c.String(404, "{\"message\":\"Not found\"}")
 	}
 	return anonymous
 }
 
-// HandlerStaticNotFound Not found handler
-func (p *Router) HandlerStaticNotAllowed() func(w http.ResponseWriter, r *http.Request) {
-	anonymous := func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Request Url %v", r.URL)
-		log.Printf("Request Headers %v", r.Header)
-		log.Printf("Request Encoding %v", r.TransferEncoding)
-		w.Header().Set("Content-type", "text/plain")
-		w.WriteHeader(405)
-		fmt.Fprintf(w, "Not allowed")
+// HandlerStaticNotAllowed Not found handler
+func (p *Router) HandlerStaticNotAllowed() func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
+		log.Printf("Request request %v", c.Request)
+		log.Printf("Request header %v", c.Request.Header)
+		log.Printf("Request Encoding %v", c.Request.TransferEncoding)
+		// content
+		c.Header("Content-type", "text/html")
+		c.String(405, "{\"message\":\"Not allowed\"}")
 	}
 	return anonymous
 }
 
 // HandlerStatic render string
-func (p *Router) HandlerStatic(method func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
-	anonymous := func(w http.ResponseWriter, r *http.Request) {
+func (p *Router) HandlerStatic(method func(c *gin.Context), content string) func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
 		// security header
-		w.Header().Set("Strict-Transport-Security", "")
-		w.Header().Set("Content-Security-Policy", "")
-		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
-		w.Header().Set("X-XSS-Protection", "1; mode=block")
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("Referrer-Policy", "same-origin")
-		method(w, r)
+		c.Header("Strict-Transport-Security", "")
+		c.Header("Content-Security-Policy", "")
+		c.Header("X-Frame-Options", "SAMEORIGIN")
+		c.Header("X-XSS-Protection", "1; mode=block")
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("Referrer-Policy", "same-origin")
+		method(c)
+		if len(content) > 0 {
+			c.Header("Content-Type", content)
+		}
 	}
 	return anonymous
 }
 
 // HandlerStaticString render string
-func (p *Router) HandlerStaticString(method func() (string, error)) func(w http.ResponseWriter, r *http.Request) {
-	anonymous := func(w http.ResponseWriter, r *http.Request) {
+func (p *Router) HandlerStaticString(method func() (string, error), content string) func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
 		// security header
-		w.Header().Set("Strict-Transport-Security", "")
-		w.Header().Set("Content-Security-Policy", "")
-		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
-		w.Header().Set("X-XSS-Protection", "1; mode=block")
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("Referrer-Policy", "same-origin")
+		c.Header("Strict-Transport-Security", "")
+		c.Header("Content-Security-Policy", "")
+		c.Header("X-Frame-Options", "SAMEORIGIN")
+		c.Header("X-XSS-Protection", "1; mode=block")
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("Referrer-Policy", "same-origin")
 		// content
-		w.Header().Set("Content-type", "text/html")
+		c.Header("Content-type", "text/html")
 		data, err := method()
 		if err != nil {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "{\"message\":\"\"}")
+			c.String(400, "{\"message\":\"\"}")
 			return
 		}
-		w.WriteHeader(200)
-		w.Write([]byte(data))
+		c.String(200, data)
+		if len(content) > 0 {
+			c.Header("Content-Type", content)
+		}
 	}
 	return anonymous
 }
 
-// HandlerStaticString render string
-func (p *Router) HandlerStaticStringWithId(method func(string) (string, error)) func(w http.ResponseWriter, r *http.Request) {
-	anonymous := func(w http.ResponseWriter, r *http.Request) {
+// HandlerStaticStringWithId render string
+func (p *Router) HandlerStaticStringWithId(method func(string) (string, error), content string) func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
 		// security header
-		w.Header().Set("Strict-Transport-Security", "")
-		w.Header().Set("Content-Security-Policy", "")
-		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
-		w.Header().Set("X-XSS-Protection", "1; mode=block")
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("Referrer-Policy", "same-origin")
+		c.Header("Strict-Transport-Security", "")
+		c.Header("Content-Security-Policy", "")
+		c.Header("X-Frame-Options", "SAMEORIGIN")
+		c.Header("X-XSS-Protection", "1; mode=block")
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("Referrer-Policy", "same-origin")
 		// content
-		w.Header().Set("Content-type", "text/html")
-		data, err := method(mux.Vars(r)["id"])
+		c.Header("Content-type", "text/html")
+		data, err := method(c.Param("id"))
 		if err != nil {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "{\"message\":\"\"}")
+			c.String(400, "{\"message\":\"\"}")
 			return
 		}
-		w.WriteHeader(200)
-		w.Write([]byte(data))
+		c.String(200, data)
+		if len(content) > 0 {
+			c.Header("Content-Type", content)
+		}
 	}
 	return anonymous
 }

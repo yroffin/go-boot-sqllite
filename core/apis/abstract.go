@@ -25,14 +25,13 @@ package apis
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"reflect"
 	"strings"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	"github.com/yroffin/go-boot-sqllite/core/bean"
 	"github.com/yroffin/go-boot-sqllite/core/business"
 	"github.com/yroffin/go-boot-sqllite/core/models"
@@ -42,8 +41,6 @@ import (
 type API struct {
 	// members
 	*bean.Bean
-	// mux router
-	Router *mux.Router
 	// all mthods to declare
 	methods []APIMethod
 	// Router with injection mecanism
@@ -81,6 +78,11 @@ type APIInterface interface {
 	HandlerGetByID(id string) (string, error)
 }
 
+// getVar get var this API
+func (p *API) getVar(c *gin.Context, key string) string {
+	return c.Param(key)
+}
+
 // ScanHandler this API
 func (p *API) ScanHandler(ptr interface{}) {
 	// define all methods
@@ -93,13 +95,13 @@ func (p *API) ScanHandler(ptr interface{}) {
 		}
 		// declare a crud handler
 		if strings.Contains(field.Name, "crud") {
-			p.append(ptr, field.Tag.Get("path")+"/{id:[0-9a-zA-Z-_]*}", "HandlerStaticGetByID", "GET", "application/json")
 			p.append(ptr, field.Tag.Get("path"), "HandlerStaticGetAll", "GET", "application/json")
 			p.append(ptr, field.Tag.Get("path"), "HandlerStaticPost", "POST", "application/json")
-			p.append(ptr, field.Tag.Get("path")+"/{id:[0-9a-zA-Z-_]*}", "HandlerStaticPutByID", "PUT", "application/json")
-			p.append(ptr, field.Tag.Get("path")+"/{id:[0-9a-zA-Z-_]*}", "HandlerStaticDeleteByID", "DELETE", "application/json")
-			p.append(ptr, field.Tag.Get("path")+"/{id:[0-9a-zA-Z-_]*}", "HandlerStaticPatchByID", "PATCH", "application/json")
-			p.append(ptr, field.Tag.Get("path")+"/{id:[0-9a-zA-Z-_]*}", "HandlerStaticPostByID", "POST", "application/json")
+			p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticGetByID", "GET", "application/json")
+			p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticPutByID", "PUT", "application/json")
+			p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticDeleteByID", "DELETE", "application/json")
+			p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticPatchByID", "PATCH", "application/json")
+			p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticPostByID", "POST", "application/json")
 		}
 	}
 	// call bean init
@@ -157,7 +159,7 @@ func (p *API) PostConstruct(name string) error {
 // Declare a new interface
 func (p *API) Declare(data APIMethod, intf interface{}) error {
 	// verify type
-	if value, ok := intf.(func(http.ResponseWriter, *http.Request)); ok {
+	if value, ok := intf.(func(c *gin.Context)); ok {
 		log.Printf("Declare handler() '%s' on '%s' with method '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (*p.RouterBean).GetName(), data.typeMime)
 		// declare it to the router
 		(*p.RouterBean).HandleFunc(data.path, value, data.method, data.typeMime)
@@ -182,139 +184,121 @@ func (p *API) Declare(data APIMethod, intf interface{}) error {
 }
 
 // HandlerStaticGetAll is the GET by ID handler
-func (p *API) HandlerStaticGetAll() func(w http.ResponseWriter, r *http.Request) {
-	anonymous := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-type", "application/json")
+func (p *API) HandlerStaticGetAll() func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
+		c.Header("Content-type", "application/json")
 		data, err := p.HandlerGetAll()
 		if err != nil {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "{\"message\":\"\"}")
+			c.String(400, "{\"message\":\"\"}")
 			return
 		}
-		w.WriteHeader(200)
-		w.Write([]byte(data))
+		c.String(200, data)
 	}
 	return anonymous
 }
 
 // HandlerStaticGetByID is the GET by ID handler
-func (p *API) HandlerStaticGetByID() func(w http.ResponseWriter, r *http.Request) {
-	anonymous := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-type", "application/json")
-		data, err := p.HandlerGetByID(mux.Vars(r)["id"])
+func (p *API) HandlerStaticGetByID() func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
+		c.Header("Content-type", "application/json")
+		data, err := p.HandlerGetByID(p.getVar(c, "id"))
 		if err != nil {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "{\"message\":\"\"}")
+			c.String(400, "{\"message\":\"\"}")
 			return
 		}
-		w.WriteHeader(200)
-		w.Write([]byte(data))
+		c.String(200, data)
 	}
 	return anonymous
 }
 
 // HandlerStaticPost is the POST handler
-func (p *API) HandlerStaticPost() func(w http.ResponseWriter, r *http.Request) {
-	anonymous := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-type", "application/json")
-		body, _ := ioutil.ReadAll(r.Body)
-		if len(r.URL.Query().Get("task")) > 0 {
-			data, err := p.HandlerTasks(r.URL.Query().Get("task"), string(body))
+func (p *API) HandlerStaticPost() func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
+		c.Header("Content-type", "application/json")
+		body, _ := ioutil.ReadAll(c.Request.Body)
+		if len(c.Query("task")) > 0 {
+			data, err := p.HandlerTasks(c.Query("task"), string(body))
 			if err != nil {
-				w.WriteHeader(400)
-				fmt.Fprintf(w, "{\"message\":\"\"}")
+				c.String(400, "{\"message\":\"\"}")
 				return
 			}
-			w.WriteHeader(202)
-			w.Write([]byte(data))
+			c.String(202, data)
 		} else {
 			data, err := p.HandlerPost(string(body))
 			if err != nil {
-				w.WriteHeader(400)
-				fmt.Fprintf(w, "{\"message\":\"\"}")
+				c.String(400, "{\"message\":\"\"}")
 				return
 			}
-			w.WriteHeader(201)
-			w.Write([]byte(data))
+			c.String(201, data)
 		}
 	}
 	return anonymous
 }
 
 // HandlerStaticPostByID is the POST handler
-func (p *API) HandlerStaticPostByID() func(w http.ResponseWriter, r *http.Request) {
-	anonymous := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-type", "application/json")
-		body, _ := ioutil.ReadAll(r.Body)
-		if len(r.URL.Query().Get("task")) > 0 {
-			data, err := p.HandlerTasksByID(mux.Vars(r)["id"], r.URL.Query().Get("task"), string(body))
+func (p *API) HandlerStaticPostByID() func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
+		c.Header("Content-type", "application/json")
+		body, _ := ioutil.ReadAll(c.Request.Body)
+		if len(c.Query("task")) > 0 {
+			data, err := p.HandlerTasksByID(p.getVar(c, "id"), c.Query("task"), string(body))
 			if err != nil {
-				w.WriteHeader(400)
-				fmt.Fprintf(w, "{\"message\":\"\"}")
+				c.String(400, "{\"message\":\"\"}")
 				return
 			}
-			w.WriteHeader(202)
-			w.Write([]byte(data))
+			c.String(202, data)
 		} else {
 			data, err := p.HandlerPost(string(body))
 			if err != nil {
-				w.WriteHeader(400)
-				fmt.Fprintf(w, "{\"message\":\"\"}")
+				c.String(400, "{\"message\":\"\"}")
 				return
 			}
-			w.WriteHeader(201)
-			w.Write([]byte(data))
+			c.String(201, data)
 		}
 	}
 	return anonymous
 }
 
 // HandlerStaticPutByID is the PUT by ID handler
-func (p *API) HandlerStaticPutByID() func(w http.ResponseWriter, r *http.Request) {
-	anonymous := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-type", "application/json")
-		body, _ := ioutil.ReadAll(r.Body)
-		data, err := p.HandlerPutByID(mux.Vars(r)["id"], string(body))
+func (p *API) HandlerStaticPutByID() func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
+		c.Header("Content-type", "application/json")
+		body, _ := ioutil.ReadAll(c.Request.Body)
+		data, err := p.HandlerPutByID(p.getVar(c, "id"), string(body))
 		if err != nil {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "{\"message\":\"\"}")
+			c.String(400, "{\"message\":\"\"}")
 			return
 		}
-		w.WriteHeader(200)
-		w.Write([]byte(data))
+		c.String(200, data)
 	}
 	return anonymous
 }
 
 // HandlerStaticDeleteByID is the DELETE by ID handler
-func (p *API) HandlerStaticDeleteByID() func(w http.ResponseWriter, r *http.Request) {
-	anonymous := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-type", "application/json")
-		data, err := p.HandlerDeleteByID(mux.Vars(r)["id"])
+func (p *API) HandlerStaticDeleteByID() func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
+		c.Header("Content-type", "application/json")
+		data, err := p.HandlerDeleteByID(p.getVar(c, "id"))
 		if err != nil {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "{\"message\":\"\"}")
+			c.String(400, "{\"message\":\"\"}")
 			return
 		}
-		w.WriteHeader(200)
-		w.Write([]byte(data))
+		c.String(200, data)
 	}
 	return anonymous
 }
 
 // HandlerStaticPatchByID is the PATCH by ID handler
-func (p *API) HandlerStaticPatchByID() func(w http.ResponseWriter, r *http.Request) {
-	anonymous := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-type", "application/json")
-		body, _ := ioutil.ReadAll(r.Body)
-		data, err := p.HandlerPatchByID(mux.Vars(r)["id"], string(body))
+func (p *API) HandlerStaticPatchByID() func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
+		c.Header("Content-type", "application/json")
+		body, _ := ioutil.ReadAll(c.Request.Body)
+		data, err := p.HandlerPatchByID(p.getVar(c, "id"), string(body))
 		if err != nil {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "{\"message\":\"\"}")
+			c.String(400, "{\"message\":\"\"}")
 			return
 		}
-		w.WriteHeader(200)
-		w.Write([]byte(data))
+		c.String(200, data)
 	}
 	return anonymous
 }

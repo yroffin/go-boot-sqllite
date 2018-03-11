@@ -1,3 +1,4 @@
+// Package apis for common interfaces
 // MIT License
 //
 // Copyright (c) 2017 yroffin
@@ -19,28 +20,53 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-package main
+package apis
 
 import (
+	"log"
+	"reflect"
 
-	// Apis
-
-	"github.com/yroffin/go-boot-sqllite/core/apis"
-	"github.com/yroffin/go-boot-sqllite/core/business"
-	"github.com/yroffin/go-boot-sqllite/core/manager"
-	"github.com/yroffin/go-boot-sqllite/core/stores"
+	"github.com/yroffin/go-boot-sqllite/core/bean"
 )
 
-// Rest()
-func main() {
-	// declare manager and boot it
-	var m = manager.Manager{}
-	m.Init()
-	// Command Line
-	m.CommandLine()
-	// Core beans
-	m.Register("router", (&apis.Router{}).New())
-	m.Register("crud-business", (&business.CrudBusiness{}).New())
-	m.Register("store-manager", (&stores.Store{}).New([]string{}, "./database.db"))
-	m.Boot("router")
+// IHREF base class
+type HREF struct {
+	// members
+	*bean.Bean
+	// all mthods to declare
+	methods []APIMethod
+	// Router with injection mecanism
+	SetRouterBean func(interface{}) `bean:"router"`
+	RouterBean    *Router
+	// Crud
+	HandlerFindAll func() (string, error)
+}
+
+// IHREF all package methods
+type IHREF interface {
+	bean.IBean
+	HandlerFindAll() (string, error)
+}
+
+// Init initialize the APIf
+func (p *HREF) Init() error {
+	// inject RouterBean
+	p.SetRouterBean = func(value interface{}) {
+		if assertion, ok := value.(*Router); ok {
+			p.RouterBean = assertion
+		} else {
+			log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
+		}
+	}
+	return nil
+}
+
+// PostConstruct this API
+func (p *HREF) PostConstruct(name string) error {
+	return p.Bean.PostConstruct(name)
+}
+
+// HandlerFindAll is the GET by ID handler
+func (p *API) HandlerFindAll() func() {
+	return nil
 }

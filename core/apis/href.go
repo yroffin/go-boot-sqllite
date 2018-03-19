@@ -33,7 +33,7 @@ import (
 type HREF struct {
 	// members
 	*bean.Bean
-	// all mthods to declare
+	// all methods to declare
 	methods []APIMethod
 	// Router with injection mecanism
 	SetRouterBean func(interface{}) `bean:"router"`

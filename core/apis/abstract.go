@@ -68,6 +68,14 @@ type APIMethod struct {
 	// mime type
 	typeMime string
 	addr     reflect.Value
+	// Fields
+	summary string
+	desc    string
+	// method handler
+	in    []interface{}
+	out   map[string]interface{}
+	args  map[string]interface{}
+	query map[string]interface{}
 }
 
 // APIInterface all package methods
@@ -78,40 +86,63 @@ type APIInterface interface {
 	HandlerGetByID(id string) (string, error)
 }
 
+// Call
+func Call(params ...interface{}) []reflect.Value {
+	in := make([]reflect.Value, len(params))
+	for k, param := range params {
+		in[k] = reflect.ValueOf(param)
+	}
+	return in
+}
+
 // ScanHandler this API
-func (p *API) ScanHandler(ptr interface{}) {
+func (p *API) ScanHandler(swagger ISwaggerService, ptr interface{}) {
 	// define all methods
 	types := reflect.TypeOf(ptr).Elem()
+	values := reflect.ValueOf(ptr).Elem()
 	for i := 0; i < types.NumField(); i++ {
 		field := types.Field(i)
+		value := values.Field(i)
 		// declare a standard mux handler
 		if len(field.Tag.Get("handler")) > 0 {
-			p.append(ptr, field.Tag.Get("path"), field.Tag.Get("handler"), field.Tag.Get("method"), field.Tag.Get("mime-type"))
+			p.append(ptr, field.Tag.Get("path"), field.Tag.Get("handler"), field.Tag.Get("method"), field.Tag.Get("mime-type"), "", "", map[string]interface{}{}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{})
 		}
 		// declare a crud handler
-		if strings.Contains(field.Name, "crud") {
-			p.append(ptr, field.Tag.Get("path"), "HandlerStaticGetAll", "GET", "application/json")
-			p.append(ptr, field.Tag.Get("path"), "HandlerStaticPost", "POST", "application/json")
-			p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticGetByID", "GET", "application/json")
-			p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticPutByID", "PUT", "application/json")
-			p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticDeleteByID", "DELETE", "application/json")
-			p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticPatchByID", "PATCH", "application/json")
-			p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticPostByID", "POST", "application/json")
+		if strings.Contains(field.Name, "Crud") {
+			assert, conv := value.Interface().(map[string]interface{})
+			if conv {
+				log.Println("Info:", field.Name, " is interface{}")
+				p.append(ptr, field.Tag.Get("path"), "HandlerStaticGetAll", "GET", "application/json", "Get all", "Get all resources", map[string]interface{}{}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert["entities"]})
+				p.append(ptr, field.Tag.Get("path"), "HandlerStaticPost", "POST", "application/json", "Execute a task or create", "Execute a task on all resources", map[string]interface{}{}, map[string]interface{}{"task": "params"}, []interface{}{assert["entity"]}, map[string]interface{}{"200": assert["entity"]})
+				p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticGetByID", "GET", "application/json", "Get by id", "Get a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert["entity"]})
+				p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticPutByID", "PUT", "application/json", "Update by id", "Update a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert["entity"]}, map[string]interface{}{"200": assert["entity"]})
+				p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticDeleteByID", "DELETE", "application/json", "Delete by id", "Delete a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert["entity"]})
+				p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticPatchByID", "PATCH", "application/json", "Patch by id", "Patch a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert["entity"]}, map[string]interface{}{"200": assert["entity"]})
+				p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticPostByID", "POST", "application/json", "Execute a task", "Execute a new task on resource", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert["entity"]}, map[string]interface{}{"201": assert["entity"]})
+			} else {
+				log.Println("Warning:", field.Name, " is not interface{}")
+			}
 		}
+	}
+	// Add method to swagger
+	for k := range p.methods {
+		method := p.methods[k]
+		var typ = strings.SplitAfter(reflect.TypeOf(ptr).String(), ".")
+		swagger.AddPaths(typ[1], p.methods[k].path, p.methods[k].method, p.methods[k].summary, p.methods[k].desc, method.args, method.query, method.in, method.out)
 	}
 	// call bean init
 	p.Init()
 }
 
 // Init initialize the API
-func (p *API) append(ptr interface{}, path string, handler string, method string, mime string) {
+func (p *API) append(ptr interface{}, path string, handler string, method string, mime string, sum string, desc string, args map[string]interface{}, query map[string]interface{}, in []interface{}, out map[string]interface{}) {
 	addr := reflect.ValueOf(ptr).MethodByName(handler)
 	if addr.IsNil() {
 		log.Fatalf("Unable to find any method called '%v'", handler)
 	} else {
 		log.Printf("Successfully mounted method called '%v' on path '%s' with method '%s' - '%s'", handler, path, method, mime)
 	}
-	p.methods = append(p.methods, APIMethod{path: path, handler: handler, method: method, addr: addr, typeMime: mime})
+	p.methods = append(p.methods, APIMethod{path: path, handler: handler, method: method, addr: addr, typeMime: mime, summary: sum, desc: desc, args: args, query: query, in: in, out: out})
 }
 
 // Init initialize the APIf

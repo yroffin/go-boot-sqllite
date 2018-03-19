@@ -39,6 +39,7 @@ func main() {
 	// Command Line
 	m.CommandLine()
 	// Core beans
+	m.Register("swagger", (&apis.SwaggerService{}).New())
 	m.Register("router", (&apis.Router{}).New())
 	m.Register("crud-business", (&business.CrudBusiness{}).New())
 	m.Register("store-manager", (&stores.Store{}).New([]string{}, "./database.db"))

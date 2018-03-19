@@ -24,6 +24,7 @@ package apis
 
 import (
 	"log"
+	"reflect"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -36,17 +37,23 @@ import (
 type Router struct {
 	// members
 	*core_services.SERVICE
-	// mux router
+	// gin router
 	Engine *gin.Engine
+	// SwaggerService with injection mecanism
+	SetSwaggerService func(interface{}) `bean:"swagger"`
+	SwaggerService    *SwaggerService
 }
 
 // IRouter Test all package methods
 type IRouter interface {
+	// Bean
 	core_bean.IBean
 	// Http boot
 	HTTP(port int) error
 	// Https boot
 	HTTPS(port int) error
+	// Swagger
+	SwaggerModel() func(*gin.Context)
 }
 
 // New constructor
@@ -57,6 +64,14 @@ func (p *Router) New() IRouter {
 
 // Init Init this API
 func (p *Router) Init() error {
+	// inject notification
+	p.SetSwaggerService = func(value interface{}) {
+		if assertion, ok := value.(*SwaggerService); ok {
+			p.SwaggerService = assertion
+		} else {
+			log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
+		}
+	}
 	return nil
 }
 
@@ -68,6 +83,7 @@ func (p *Router) PostConstruct(name string) error {
 	// Fix default handler
 	//p.Engine.HandleMethodNotAllowed = http.HandlerFunc(p.HandlerStaticNotAllowed())
 	//p.Engine = http.HandlerFunc(p.HandlerStaticNotFound())
+
 	return nil
 }
 
@@ -78,9 +94,19 @@ func (p *Router) Validate(name string) error {
 	return nil
 }
 
+// Swagger method
+func (p *Router) SwaggerModel() func(*gin.Context) {
+	anonymous := func(c *gin.Context) {
+		c.IndentedJSON(200, p.SwaggerService.SwaggerModel())
+	}
+	return anonymous
+}
+
 // HTTP boot http service
 func (p *Router) HTTP(port int) error {
 	gin.SetMode("debug")
+
+	p.Engine.GET("/api/swagger.json", p.SwaggerModel())
 	p.Engine.Run(":" + strconv.Itoa(port))
 	return nil
 }
@@ -92,7 +118,7 @@ func (p *Router) HTTPS(port int) error {
 
 // HandleFunc declare a handler
 func (p *Router) HandleFuncTonic(path string, f func() (interface{}, error), method string, content string) {
-	log.Printf("Router::HandleFunc '%s' with method '%s' with type mime '%s'", path, method, content)
+	log.Printf("Router::HandleFuncTonic '%s' with method '%s' with type mime '%s'", path, method, content)
 	// declare it to the router
 	p.Engine.Handle(method, path, p.HandlerStaticJson(f, 200, ""))
 }
@@ -106,14 +132,14 @@ func (p *Router) HandleFunc(path string, f func(c *gin.Context), method string, 
 
 // HandleFuncString declare a string handler
 func (p *Router) HandleFuncString(path string, f func() (string, error), method string, content string) {
-	log.Printf("Router::HandleFunc '%s' with method '%s' with type mime '%s'", path, method, content)
+	log.Printf("Router::HandleFuncString '%s' with method '%s' with type mime '%s'", path, method, content)
 	// declare it to the router
 	p.Engine.Handle(method, path, p.HandlerStaticString(f, content))
 }
 
 // HandleFuncStringWithId declare a string handler
 func (p *Router) HandleFuncStringWithId(path string, f func(string) (string, error), method string, content string) {
-	log.Printf("Router::HandleFunc '%s' with method '%s' with type mime '%s'", path, method, content)
+	log.Printf("Router::HandleFuncStringWithId '%s' with method '%s' with type mime '%s'", path, method, content)
 	// declare it to the router
 	p.Engine.Handle(method, path, p.HandlerStaticStringWithId(f, content))
 }

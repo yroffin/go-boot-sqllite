@@ -213,6 +213,10 @@ func (m *Manager) dump(val reflect.Value) {
 	if val.Type().Kind() == reflect.String {
 		return
 	}
+	// Ignore primitive types
+	if val.Type().Kind() == reflect.Map {
+		return
+	}
 	log.Printf("**** INJECT/SCAN **** Type: '%v' Kind: '%v'", val.Type(), val.Type().Kind())
 	for i := 0; i < val.NumField(); i++ {
 		valueField := val.Field(i)
@@ -242,6 +246,8 @@ func (m *Manager) dump(val reflect.Value) {
 	// Dump all fields for iterate recursively
 	for i := 0; i < val.NumField(); i++ {
 		valueField := val.Field(i)
-		m.dump(valueField)
+		if !m.isPrivate(val.Type().Field(i)) {
+			m.dump(valueField)
+		}
 	}
 }

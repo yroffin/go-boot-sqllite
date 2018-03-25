@@ -38,10 +38,10 @@ import (
 // Manager interface
 type Manager struct {
 	// Bean registry
-	ArrayOfBeans     []bean.IBean
+	ArrayOfBeans     []interface{}
 	ArrayOfBeanNames []string
 	// Bean registry
-	MapOfBeans map[string]bean.IBean
+	MapOfBeans map[string]interface{}
 	// sync wait group
 	wg sync.WaitGroup
 	// Properties
@@ -63,9 +63,9 @@ type IManager interface {
 // Init a single bean
 func (m *Manager) Init() {
 	log.Printf("Manager::Init")
-	m.ArrayOfBeans = make([]bean.IBean, 0)
+	m.ArrayOfBeans = make([]interface{}, 0)
 	m.ArrayOfBeanNames = make([]string, 0)
-	m.MapOfBeans = make(map[string]bean.IBean)
+	m.MapOfBeans = make(map[string]interface{})
 }
 
 // Register a single bean
@@ -96,12 +96,12 @@ func (m *Manager) Boot(routerBeanName string) error {
 	}
 	log.Printf("Manager::Boot post-construct")
 	for index := 0; index < len(m.ArrayOfBeans); index++ {
-		m.ArrayOfBeans[index].PostConstruct(m.ArrayOfBeanNames[index])
+		m.execute(false, m.ArrayOfBeanNames[index], m.ArrayOfBeans[index], "PostConstruct")
 		log.Printf("Manager::Boot post-construct sucessfull for %v", m.ArrayOfBeanNames[index])
 	}
 	log.Printf("Manager::Boot validate")
 	for index := 0; index < len(m.ArrayOfBeans); index++ {
-		m.ArrayOfBeans[index].Validate(m.ArrayOfBeanNames[index])
+		m.execute(false, m.ArrayOfBeanNames[index], m.ArrayOfBeans[index], "Validate")
 		log.Printf("Manager::Boot validation sucessfull for %v", m.ArrayOfBeanNames[index])
 	}
 
@@ -162,21 +162,10 @@ func (m *Manager) Wait() error {
 	return nil
 }
 
-// BeanScanner scan all component on this bean
-func (m *Manager) BeanScanner(myBean interface{}) {
-	m.reflect(&myBean)
-}
-
 // Inject this API
-func (m *Manager) Inject(name string, value interface{}) error {
-	m.BeanScanner(value)
+func (m *Manager) Inject(name string, intf interface{}) error {
+	m.autowire(false, 0, intf, reflect.ValueOf(intf))
 	return nil
-}
-
-// Inject this API
-func (m *Manager) reflect(element interface{}) {
-	val := reflect.ValueOf(element).Elem()
-	m.dump(val)
 }
 
 // dumpFields dump all fields
@@ -185,69 +174,106 @@ func (m *Manager) isPrivate(val reflect.StructField) bool {
 }
 
 // dumpFields dump all fields
-func (m *Manager) dump(val reflect.Value) {
-	// Interface case
-	if val.Type().Kind() == reflect.Interface {
-		if val.IsNil() {
-			return
+func (m *Manager) autowire(debug bool, level int, intf interface{}, val reflect.Value) {
+	if debug {
+		log.Printf("%02d: **** METHOD ***", level)
+		for i := 0; i < val.NumMethod(); i++ {
+			typeMethod := val.Type().Method(i)
+			log.Printf("Method Name: '%s'", typeMethod.Name)
 		}
-		m.dump(val.Elem())
-		return
 	}
-	// Pointer case
-	if val.Type().Kind() == reflect.Ptr {
+
+	var kind = val.Type().Kind()
+
+	// Interface case and Pointer case
+	if kind == reflect.Interface || kind == reflect.Ptr {
 		if !val.IsNil() {
-			m.dump(val.Elem())
+			m.autowire(debug, level+1, intf, val.Elem())
 		}
 		return
 	}
+
 	// Function case
-	if val.Type().Kind() == reflect.Func {
+	if kind == reflect.Func {
 		return
 	}
 	// Ignore primitive types
-	if val.Type().Kind() == reflect.Slice {
+	if kind == reflect.Slice {
 		return
 	}
 	// Ignore primitive types
-	if val.Type().Kind() == reflect.String {
+	if kind == reflect.String {
 		return
 	}
 	// Ignore primitive types
-	if val.Type().Kind() == reflect.Map {
+	if kind == reflect.Map {
 		return
 	}
-	log.Printf("**** INJECT/SCAN **** Type: '%v' Kind: '%v'", val.Type(), val.Type().Kind())
+
+	if debug {
+		log.Printf("%02d: **** FIELDS ****", level)
+		for i := 0; i < val.NumField(); i++ {
+			valueField := val.Field(i)
+			typeField := val.Type().Field(i)
+			tag := typeField.Tag
+			log.Printf("Field  Name: '%s'\tField Value: '%v'\t Tag Value: '%v'", typeField.Name, valueField.Interface(), tag)
+		}
+	}
+
+	// Dump all methods
+	if debug {
+		log.Printf("**** INJECT/SCAN **** Type: '%v' Kind: '%v'", val.Type(), val.Type().Kind())
+	}
 	for i := 0; i < val.NumField(); i++ {
 		valueField := val.Field(i)
 		typeField := val.Type().Field(i)
 		tag := typeField.Tag
-		if m.isPrivate(typeField) {
-			log.Printf("Field  Name: '%s'\tprivate", typeField.Name)
-		} else {
-			log.Printf("Field  Name: '%s'\tField Value: '%v'\t Tag Value: '%v'", typeField.Name, valueField.Interface(), tag)
-			if len(tag.Get("bean")) > 0 {
-				var beanName = tag.Get("bean")
-				apply, ok := valueField.Interface().(func(interface{}))
-				if ok {
-					log.Printf("Field  Name: '%s' INJECTION with %v/%v", typeField.Name, m.MapOfBeans[beanName], beanName)
-					apply(m.MapOfBeans[beanName])
-				} else {
-					log.Printf("Field  Name: '%s' IS NOT COMPATIBLE", typeField.Name)
+		if !m.isPrivate(typeField) {
+			if len(tag.Get("@autowired")) > 0 {
+				if valueField.IsNil() {
+					var beanName = tag.Get("@autowired")
+					var myBean = m.MapOfBeans[beanName]
+					var camelCase = ""
+					for _, word := range strings.Split(beanName, "-") {
+						camelCase += strings.ToUpper(word[:1]) + strings.ToLower(word[1:])
+					}
+					var camelCaseOperation = "Set" + camelCase
+					var setter = reflect.ValueOf(intf).MethodByName(camelCaseOperation)
+					arr := [1]reflect.Value{reflect.ValueOf(myBean)}
+					var arguments = arr[:1]
+					log.Printf("Apply: '%s' on %v with %v(%v)", camelCaseOperation, beanName, setter, arguments)
+					setter.Call(arguments)
 				}
 			}
 		}
 	}
-	// Dump all methods
-	for i := 0; i < val.NumMethod(); i++ {
-		typeMethod := val.Type().Method(i)
-		log.Printf("Method Name: '%s'", typeMethod.Name)
-	}
 	// Dump all fields for iterate recursively
 	for i := 0; i < val.NumField(); i++ {
 		valueField := val.Field(i)
-		if !m.isPrivate(val.Type().Field(i)) {
-			m.dump(valueField)
+		typeField := val.Type().Field(i)
+		tag := typeField.Tag
+		if !m.isPrivate(typeField) {
+			// autowired fields are excluded for recursive init
+			if !(len(tag.Get("@autowired")) > 0) {
+				m.autowire(debug, level+1, valueField.Interface(), valueField)
+			}
+		}
+	}
+}
+
+// dumpFields dump all fields
+func (m *Manager) execute(debug bool, beanName string, intf interface{}, handler string) {
+	val := reflect.ValueOf(intf)
+	for i := 0; i < val.NumMethod(); i++ {
+		typeMethod := val.Type().Method(i)
+		if typeMethod.Name == handler {
+			var setter = reflect.ValueOf(intf).MethodByName(handler)
+			arr := [1]reflect.Value{reflect.ValueOf(beanName)}
+			var arguments = arr[:1]
+			if debug {
+				log.Printf("Apply: '%s' on %v with %v(%v)", handler, beanName, setter, beanName)
+			}
+			setter.Call(arguments)
 		}
 	}
 }

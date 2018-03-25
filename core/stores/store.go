@@ -1,3 +1,4 @@
+// Package stores for all sgbd operation
 // MIT License
 //
 // Copyright (c) 2017 yroffin
@@ -19,30 +20,24 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-package main
+package stores
 
 import (
-	"github.com/yroffin/go-boot-sqllite/core/apis"
-	"github.com/yroffin/go-boot-sqllite/core/business"
-	"github.com/yroffin/go-boot-sqllite/core/manager"
-	"github.com/yroffin/go-boot-sqllite/core/stores"
+
+	// for import driver
+	_ "github.com/mattn/go-sqlite3"
+
+	core_bean "github.com/yroffin/go-boot-sqllite/core/bean"
+	"github.com/yroffin/go-boot-sqllite/core/models"
 )
 
-// Main
-func main() {
-	// declare manager and boot it
-	var m = manager.Manager{}
-	m.Init()
-	// Command Line
-	m.CommandLine()
-	// Core beans
-	m.Register("swagger", (&apis.SwaggerService{}).New())
-	m.Register("router", (&apis.Router{}).New())
-	m.Register("sql-crud-business", (&business.SqlCrudBusiness{}).New())
-	m.Register("graph-crud-business", (&business.GraphCrudBusiness{}).New())
-	m.Register("sqllite-manager", (&stores.Store{}).New([]string{"Node"}, "./sqllite.db"))
-	m.Register("cayley-manager", (&stores.Graph{}).New([]string{"Node"}, "./cayley.db"))
-	// API beans
-	m.Register("node-api", (&apis.Node{}).New())
-	m.Boot("router")
+// IStore interface
+type IStore interface {
+	core_bean.IBean
+	Create(entity models.IPersistent) error
+	Update(id string, entity models.IPersistent) error
+	Delete(id string, entity models.IPersistent) error
+	Truncate(entity models.IPersistent) error
+	Get(id string, entity models.IPersistent) error
+	GetAll(entity models.IPersistent, array models.IPersistents) error
 }

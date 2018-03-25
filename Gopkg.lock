@@ -2,6 +2,36 @@
 
 
 [[projects]]
+  name = "github.com/boltdb/bolt"
+  packages = ["."]
+  revision = "2f1ce7a837dcb8da3ec595b1dac9d0632f0f99e8"
+  version = "v1.3.1"
+
+[[projects]]
+  name = "github.com/cayleygraph/cayley"
+  packages = [".","clog","graph","graph/iterator","graph/kv","graph/kv/bolt","graph/log","graph/memstore","graph/path","graph/proto","graph/shape","internal/lru","quad","quad/pquads","quad/pquads/pio","query","query/gizmo","query/graphql","schema","voc","voc/rdf","voc/rdfs","voc/schema","writer"]
+  revision = "3091e673e8d9a945a71e286ca90f5e478e3ac503"
+  version = "v0.7.2"
+
+[[projects]]
+  name = "github.com/dennwc/graphql"
+  packages = ["gqlerrors","language/ast","language/lexer","language/parser"]
+  revision = "a5cf5f205dfd1cec7d9c7a5e94f5f2084faf47bc"
+  version = "v0.4.18"
+
+[[projects]]
+  name = "github.com/dlclark/regexp2"
+  packages = [".","syntax"]
+  revision = "487489b64fb796de2e55f4e8a4ad1e145f80e957"
+  version = "v1.1.6"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/dop251/goja"
+  packages = [".","ast","file","parser","token"]
+  revision = "9183045acc25574e0dd2ad37d5e7f978b1a4de12"
+
+[[projects]]
   branch = "master"
   name = "github.com/gin-contrib/sse"
   packages = ["."]
@@ -14,16 +44,28 @@
   version = "v1.2"
 
 [[projects]]
+  name = "github.com/go-sourcemap/sourcemap"
+  packages = [".","internal/base64vlq"]
+  revision = "b019cc30c1eaa584753491b0d8f8c1534bf1eb44"
+  version = "v2.1.2"
+
+[[projects]]
+  name = "github.com/gogo/protobuf"
+  packages = ["gogoproto","proto","protoc-gen-gogo/descriptor"]
+  revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/golang/protobuf"
   packages = ["proto"]
   revision = "925541529c1fa6821df4e44ce2723319eb2be768"
   version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/loopfz/gadgeto"
-  packages = ["tonic"]
-  revision = "a6c0854d9fa4a991d4386e7448e81de934684328"
+  name = "github.com/graphql-go/graphql"
+  packages = ["gqlerrors","language/ast","language/kinds","language/lexer","language/location","language/source"]
+  revision = "1e23489041ba90a66f317fe0deccb236a2fff3cb"
+  version = "v0.7.5"
 
 [[projects]]
   name = "github.com/mattn/go-isatty"
@@ -39,9 +81,9 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/satori/go.uuid"
+  name = "github.com/tylertreat/BoomFilters"
   packages = ["."]
-  revision = "36e9d2ebbde5e3f13ab2e25625fd453271d6522e"
+  revision = "73a098af107a204e5f94e30d0e042c884cb06d26"
 
 [[projects]]
   name = "github.com/ugorji/go"
@@ -53,7 +95,13 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "7dca6fe1f43775aa6d1334576870ff63f978f539"
+  revision = "91ee8cde435411ca3f1cd365e8f20131aed4d0a1"
+
+[[projects]]
+  name = "golang.org/x/text"
+  packages = ["cases","collate","collate/build","internal","internal/colltab","internal/gen","internal/tag","internal/triegen","internal/ucd","language","transform","unicode/cldr","unicode/norm"]
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
+  version = "v0.3.0"
 
 [[projects]]
   name = "gopkg.in/go-playground/validator.v8"
@@ -70,6 +118,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b254733c5cc458f1326103c643a8c2dbc9150316fcc034a38d679ef7ce1b596d"
+  inputs-digest = "09f5c1f2689f38641047fd84d71b8dcc274f0e0ac5d62e8b7896c643b8c48236"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -27,7 +27,6 @@ import (
 	"errors"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"reflect"
 	"strings"
 
@@ -39,25 +38,18 @@ import (
 
 // API base class
 type API struct {
-	// members
 	*bean.Bean
 	// all mthods to declare
 	methods []APIMethod
 	// Router with injection mecanism
-	SetRouterBean func(interface{}) `bean:"router"`
-	RouterBean    *Router
-	// Router with injection mecanism
-	SetCrudBusiness func(interface{}) `bean:"crud-business"`
-	CrudBusiness    *business.CrudBusiness
-	// Crud
-	HandlerGetByID    func(id string) (interface{}, error)
-	HandlerGetAll     func() (interface{}, error)
-	HandlerPost       func(body string) (interface{}, error)
-	HandlerTasks      func(name string, body string) (interface{}, error)
-	HandlerTasksByID  func(id string, name string, body string) (interface{}, error)
-	HandlerPutByID    func(id string, body string) (interface{}, error)
-	HandlerDeleteByID func(id string) (interface{}, error)
-	HandlerPatchByID  func(id string, body string) (interface{}, error)
+	RouterBean IRouter `@autowired:"router"`
+	// SqlCrudBusiness with injection mecanism
+	SqlCrudBusiness business.ICrudBusiness `@autowired:"sql-crud-business"`
+	// SqlGraphBusiness with injection mecanism
+	SqlGraphBusiness business.ICrudBusiness `@autowired:"graph-crud-business"`
+	// Factory
+	Factory   func() models.IPersistent
+	Factories func() models.IPersistents
 }
 
 // APIMethod single structure to modelise api declaration
@@ -81,9 +73,20 @@ type APIMethod struct {
 // APIInterface all package methods
 type APIInterface interface {
 	bean.IBean
-	Declare(APIMethod, interface{})
-	HandlerStatic() func(w http.ResponseWriter, r *http.Request)
-	HandlerGetByID(id string) (string, error)
+	Declare(APIMethod, interface{}) error
+	// Data handled by this API
+	GetFactory() models.IPersistent
+	GetFactories() models.IPersistents
+}
+
+// Factory return on new bean
+func (p *API) GetFactory() models.IPersistent {
+	return p.Factory()
+}
+
+// Factories return a bean list
+func (p *API) GetFactories() models.IPersistents {
+	return p.Factories()
 }
 
 // Call
@@ -108,17 +111,32 @@ func (p *API) ScanHandler(swagger ISwaggerService, ptr interface{}) {
 			p.append(ptr, field.Tag.Get("path"), field.Tag.Get("handler"), field.Tag.Get("method"), field.Tag.Get("mime-type"), "", "", map[string]interface{}{}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{})
 		}
 		// declare a crud handler
-		if strings.Contains(field.Name, "Crud") {
-			assert, conv := value.Interface().(map[string]interface{})
+		if len(field.Tag.Get("@crud")) > 0 {
+			assert, conv := ptr.(APIInterface)
 			if conv {
 				log.Println("Info:", field.Name, " is interface{}")
-				p.append(ptr, field.Tag.Get("path"), "HandlerStaticGetAll", "GET", "application/json", "Get all", "Get all resources", map[string]interface{}{}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert["entities"]})
-				p.append(ptr, field.Tag.Get("path"), "HandlerStaticPost", "POST", "application/json", "Execute a task or create", "Execute a task on all resources", map[string]interface{}{}, map[string]interface{}{"task": "params"}, []interface{}{assert["entity"]}, map[string]interface{}{"200": assert["entity"]})
-				p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticGetByID", "GET", "application/json", "Get by id", "Get a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert["entity"]})
-				p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticPutByID", "PUT", "application/json", "Update by id", "Update a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert["entity"]}, map[string]interface{}{"200": assert["entity"]})
-				p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticDeleteByID", "DELETE", "application/json", "Delete by id", "Delete a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert["entity"]})
-				p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticPatchByID", "PATCH", "application/json", "Patch by id", "Patch a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert["entity"]}, map[string]interface{}{"200": assert["entity"]})
-				p.append(ptr, field.Tag.Get("path")+"/:id", "HandlerStaticPostByID", "POST", "application/json", "Execute a task", "Execute a new task on resource", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert["entity"]}, map[string]interface{}{"201": assert["entity"]})
+				p.append(ptr, field.Tag.Get("@crud"), "HandlerStaticGetAll", "GET", "application/json", "Get all", "Get all resources", map[string]interface{}{}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactories()})
+				p.append(ptr, field.Tag.Get("@crud"), "HandlerStaticPost", "POST", "application/json", "Execute a task or create", "Execute a task on all resources", map[string]interface{}{}, map[string]interface{}{"task": "params"}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()})
+				p.append(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticGetByID", "GET", "application/json", "Get by id", "Get a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()})
+				p.append(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticPutByID", "PUT", "application/json", "Update by id", "Update a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()})
+				p.append(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticDeleteByID", "DELETE", "application/json", "Delete by id", "Delete a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()})
+				p.append(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticPatchByID", "PATCH", "application/json", "Patch by id", "Patch a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()})
+				p.append(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticPostByID", "POST", "application/json", "Execute a task", "Execute a new task on resource", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"201": assert.GetFactory()})
+			} else {
+				log.Println("Warning:", field.Name, "is not interface{}", reflect.TypeOf(value))
+			}
+		}
+		// declare a link handler
+		if len(field.Tag.Get("link")) > 0 {
+			assert, conv := value.Interface().(API)
+			if conv {
+				var linkName = field.Tag.Get("href")
+				log.Println("Info:", field.Name, " is interface{}")
+				p.append(ptr, field.Tag.Get("link")+"/:id/"+linkName, "HandlerLinkStaticGetAll", "GET", "application/json", "Get all", "Get all resources", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactories()})
+				p.append(ptr, field.Tag.Get("link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticGetByID", "GET", "application/json", "Get by id", "Get a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()})
+				p.append(ptr, field.Tag.Get("link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticPutByID", "PUT", "application/json", "Update by id", "Update a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()})
+				p.append(ptr, field.Tag.Get("link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticDeleteByID", "DELETE", "application/json", "Delete by id", "Delete a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()})
+				p.append(ptr, field.Tag.Get("link")+"/:id/"+linkName, "HandlerLinkStaticPost", "POST", "application/json", "Create link", "Create a new link on resource", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"201": assert.GetFactory()})
 			} else {
 				log.Println("Warning:", field.Name, " is not interface{}")
 			}
@@ -137,7 +155,7 @@ func (p *API) ScanHandler(swagger ISwaggerService, ptr interface{}) {
 // Init initialize the API
 func (p *API) append(ptr interface{}, path string, handler string, method string, mime string, sum string, desc string, args map[string]interface{}, query map[string]interface{}, in []interface{}, out map[string]interface{}) {
 	addr := reflect.ValueOf(ptr).MethodByName(handler)
-	if addr.IsNil() {
+	if !addr.IsValid() || addr.IsNil() {
 		log.Fatalf("Unable to find any method called '%v'", handler)
 	} else {
 		log.Printf("Successfully mounted method called '%v' on path '%s' with method '%s' - '%s'", handler, path, method, mime)
@@ -145,24 +163,35 @@ func (p *API) append(ptr interface{}, path string, handler string, method string
 	p.methods = append(p.methods, APIMethod{path: path, handler: handler, method: method, addr: addr, typeMime: mime, summary: sum, desc: desc, args: args, query: query, in: in, out: out})
 }
 
+// SetSqlCrudBusiness inject CrudBusiness
+func (p *API) SetSqlCrudBusiness(value interface{}) {
+	if assertion, ok := value.(business.ICrudBusiness); ok {
+		p.SqlCrudBusiness = assertion
+	} else {
+		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
+	}
+}
+
+// SetGraphCrudBusiness inject CrudBusiness
+func (p *API) SetGraphCrudBusiness(value interface{}) {
+	if assertion, ok := value.(business.ICrudBusiness); ok {
+		p.SqlGraphBusiness = assertion
+	} else {
+		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
+	}
+}
+
+// SetRouter inject RouterBean
+func (p *API) SetRouter(value interface{}) {
+	if assertion, ok := value.(IRouter); ok {
+		p.RouterBean = assertion
+	} else {
+		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
+	}
+}
+
 // Init initialize the APIf
 func (p *API) Init() error {
-	// inject CrudBusiness
-	p.SetCrudBusiness = func(value interface{}) {
-		if assertion, ok := value.(*business.CrudBusiness); ok {
-			p.CrudBusiness = assertion
-		} else {
-			log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
-		}
-	}
-	// inject RouterBean
-	p.SetRouterBean = func(value interface{}) {
-		if assertion, ok := value.(*Router); ok {
-			p.RouterBean = assertion
-		} else {
-			log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
-		}
-	}
 	// build arguments
 	arr := [1]reflect.Value{reflect.ValueOf(p)}
 	var arguments = arr[1:1]
@@ -186,23 +215,23 @@ func (p *API) PostConstruct(name string) error {
 func (p *API) Declare(data APIMethod, intf interface{}) error {
 	// verify type
 	if value, ok := intf.(func(c *gin.Context)); ok {
-		log.Printf("Declare handler() '%s' on '%s' with method '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (*p.RouterBean).GetName(), data.typeMime)
+		log.Printf("Declare handler() '%s' on '%s' with method '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (p.RouterBean).GetName(), data.typeMime)
 		// declare it to the router
-		(*p.RouterBean).HandleFunc(data.path, value, data.method, data.typeMime)
+		(p.RouterBean).HandleFunc(data.path, value, data.method, data.typeMime)
 		return nil
 	}
 	// verify type
 	if value, ok := intf.(func() (string, error)); ok {
-		log.Printf("Declare function() '%s' on '%s' with method '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (*p.RouterBean).GetName(), data.typeMime)
+		log.Printf("Declare function() '%s' on '%s' with method '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (p.RouterBean).GetName(), data.typeMime)
 		// declare it to the router
-		(*p.RouterBean).HandleFuncString(data.path, value, data.method, data.typeMime)
+		(p.RouterBean).HandleFuncString(data.path, value, data.method, data.typeMime)
 		return nil
 	}
 	// verify type
 	if value, ok := intf.(func(string) (string, error)); ok {
-		log.Printf("Declare function() '%s' on '%s' with method with id '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (*p.RouterBean).GetName(), data.typeMime)
+		log.Printf("Declare function() '%s' on '%s' with method with id '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (p.RouterBean).GetName(), data.typeMime)
 		// declare it to the router
-		(*p.RouterBean).HandleFuncStringWithId(data.path, value, data.method, data.typeMime)
+		(p.RouterBean).HandleFuncStringWithId(data.path, value, data.method, data.typeMime)
 		return nil
 	}
 	// Error case
@@ -250,12 +279,24 @@ func (p *API) HandlerStaticPost() func(c *gin.Context) {
 			}
 			c.IndentedJSON(202, data)
 		} else {
-			data, err := p.HandlerPost(string(body))
-			if err != nil {
-				c.String(400, "{\"message\":\"\"}")
-				return
+			_, ok := c.Request.URL.Query()["filter"]
+			if ok {
+				var objmap map[string]string
+				err := json.Unmarshal(body, &objmap)
+				data, err := p.HandlerFilter(objmap)
+				if err != nil {
+					c.String(400, "{\"message\":\"\"}")
+					return
+				}
+				c.IndentedJSON(200, data)
+			} else {
+				data, err := p.HandlerPost(string(body))
+				if err != nil {
+					c.String(400, "{\"message\":\"\"}")
+					return
+				}
+				c.IndentedJSON(201, data)
 			}
-			c.IndentedJSON(201, data)
 		}
 	}
 	return anonymous
@@ -329,9 +370,140 @@ func (p *API) HandlerStaticPatchByID() func(c *gin.Context) {
 	return anonymous
 }
 
+// HandlerLinkStaticGetAll is the GET by ID handler
+func (p *API) HandlerLinkStaticGetAll() func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
+		c.Header("Content-type", "application/json")
+		data, err := p.HandlerGetAll()
+		if err != nil {
+			c.String(400, "{\"message\":\"\"}")
+			return
+		}
+		c.IndentedJSON(200, data)
+	}
+	return anonymous
+}
+
+// HandlerLinkStaticGetByID is the GET by ID handler
+func (p *API) HandlerLinkStaticGetByID() func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
+		c.Header("Content-type", "application/json")
+		data, err := p.HandlerGetByID(c.Param("id"))
+		if err != nil {
+			c.String(400, "{\"message\":\"\"}")
+			return
+		}
+		c.IndentedJSON(200, data)
+	}
+	return anonymous
+}
+
+// HandlerLinkStaticPost is the POST handler
+func (p *API) HandlerLinkStaticPost() func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
+		c.Header("Content-type", "application/json")
+		body, _ := ioutil.ReadAll(c.Request.Body)
+		if len(c.Query("task")) > 0 {
+			data, err := p.HandlerTasks(c.Query("task"), string(body))
+			if err != nil {
+				c.String(400, "{\"message\":\"\"}")
+				return
+			}
+			c.IndentedJSON(202, data)
+		} else {
+			data, err := p.HandlerPost(string(body))
+			if err != nil {
+				c.String(400, "{\"message\":\"\"}")
+				return
+			}
+			c.IndentedJSON(201, data)
+		}
+	}
+	return anonymous
+}
+
+// HandlerLinkStaticPutByID is the PUT by ID handler
+func (p *API) HandlerLinkStaticPutByID() func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
+		c.Header("Content-type", "application/json")
+		body, _ := ioutil.ReadAll(c.Request.Body)
+		data, err := p.HandlerPutByID(c.Param("id"), string(body))
+		if err != nil {
+			c.String(400, "{\"message\":\"\"}")
+			return
+		}
+		c.IndentedJSON(200, data)
+	}
+	return anonymous
+}
+
+// HandlerLinkStaticDeleteByID is the DELETE by ID handler
+func (p *API) HandlerLinkStaticDeleteByID() func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
+		c.Header("Content-type", "application/json")
+		data, err := p.HandlerDeleteByID(c.Param("id"))
+		if err != nil {
+			c.String(400, "{\"message\":\"\"}")
+			return
+		}
+		c.IndentedJSON(200, data)
+	}
+	return anonymous
+}
+
+// HandlerGetAll get all
+func (p *API) HandlerGetAll() (interface{}, error) {
+	return p.GenericGetAll(p.Factory(), p.Factories())
+}
+
+// HandlerGetByID get by id
+func (p *API) HandlerGetByID(id string) (interface{}, error) {
+	return p.GenericGetByID(id, p.Factory())
+}
+
+// HandlerPost create handler
+func (p *API) HandlerPost(body string) (interface{}, error) {
+	return p.GenericPost(body, p.Factory())
+}
+
+// HandlerTasks task handler
+func (p *API) HandlerTasks(name string, body string) (interface{}, error) {
+	return "", nil
+}
+
+// HandlerFilter task handler for filter
+func (p *API) HandlerFilter(body map[string]string) (models.IPersistents, error) {
+	return nil, nil
+}
+
+// HandlerTasksByID return task by id
+func (p *API) HandlerTasksByID(id string, name string, body string) (interface{}, error) {
+	return "", nil
+}
+
+// HandlerPutByID update by id
+func (p *API) HandlerPutByID(id string, body string) (interface{}, error) {
+	return p.GenericPutByID(id, body, p.Factory())
+}
+
+// HandlerDeleteByID delete by id
+func (p *API) HandlerDeleteByID(id string) (interface{}, error) {
+	return p.GenericDeleteByID(id, p.Factory())
+}
+
+// HandlerPatchByID pach by id
+func (p *API) HandlerPatchByID(id string, body string) (interface{}, error) {
+	return p.GenericPatchByID(id, body, p.Factory())
+}
+
+// HandlerLinkGetAll get all
+func (p *API) HandlerLinkGetAll(id string) (interface{}, error) {
+	return p.GenericGetAll(p.Factory(), p.Factories())
+}
+
 // GenericGetAll default method
 func (p *API) GenericGetAll(toGet models.IPersistent, toGets models.IPersistents) (interface{}, error) {
-	p.CrudBusiness.GetAll(toGet, toGets)
+	p.SqlCrudBusiness.GetAll(toGet, toGets)
 	return toGets.Get(), nil
 }
 
@@ -344,7 +516,7 @@ func (p *API) GenericGetByID(id string, toGet models.IPersistent) (interface{}, 
 // GetByID default method
 func (p *API) GetByID(id string, toGet models.IPersistent) error {
 	toGet.SetID(id)
-	p.CrudBusiness.Get(toGet)
+	p.SqlCrudBusiness.Get(toGet)
 	return nil
 }
 
@@ -357,7 +529,7 @@ func (p *API) GenericPost(body string, toCreate models.IPersistent) (interface{}
 		log.Printf("Error, while Unmarshaling body %v - %v", body, result)
 		return body, result
 	}
-	bean, _ := p.CrudBusiness.Create(toCreate)
+	bean, _ := p.SqlCrudBusiness.Create(toCreate)
 	return bean, nil
 }
 
@@ -366,7 +538,7 @@ func (p *API) GenericPutByID(id string, body string, toUpdate models.IPersistent
 	toUpdate.SetID(id)
 	var bin = []byte(body)
 	json.Unmarshal(bin, &toUpdate)
-	bean, _ := p.CrudBusiness.Update(toUpdate)
+	bean, _ := p.SqlCrudBusiness.Update(toUpdate)
 	return bean, nil
 }
 
@@ -375,14 +547,14 @@ func (p *API) GenericPatchByID(id string, body string, toPatch models.IPersisten
 	toPatch.SetID(id)
 	var bin = []byte(body)
 	json.Unmarshal(bin, &toPatch)
-	bean, _ := p.CrudBusiness.Patch(toPatch)
+	bean, _ := p.SqlCrudBusiness.Patch(toPatch)
 	return bean, nil
 }
 
 // GenericDeleteByID default method
 func (p *API) GenericDeleteByID(id string, toDelete models.IPersistent) (interface{}, error) {
 	toDelete.SetID(id)
-	p.CrudBusiness.Get(toDelete)
-	old, _ := p.CrudBusiness.Delete(toDelete)
+	p.SqlCrudBusiness.Get(toDelete)
+	old, _ := p.SqlCrudBusiness.Delete(toDelete)
 	return old, nil
 }

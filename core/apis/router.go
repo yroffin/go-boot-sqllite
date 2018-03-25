@@ -40,8 +40,7 @@ type Router struct {
 	// gin router
 	Engine *gin.Engine
 	// SwaggerService with injection mecanism
-	SetSwaggerService func(interface{}) `bean:"swagger"`
-	SwaggerService    *SwaggerService
+	SwaggerService *SwaggerService `@autowired:"swagger"`
 }
 
 // IRouter Test all package methods
@@ -54,6 +53,12 @@ type IRouter interface {
 	HTTPS(port int) error
 	// Swagger
 	SwaggerModel() func(*gin.Context)
+	// HandleFunc
+	HandleFunc(path string, f func(c *gin.Context), method string, content string)
+	// HandleFuncString declare a string handler
+	HandleFuncString(path string, f func() (string, error), method string, content string)
+	// HandleFuncStringWithId declare a string handler
+	HandleFuncStringWithId(path string, f func(string) (string, error), method string, content string)
 }
 
 // New constructor
@@ -62,16 +67,17 @@ func (p *Router) New() IRouter {
 	return &bean
 }
 
+// SetSwagger inject notification
+func (p *Router) SetSwagger(value interface{}) {
+	if assertion, ok := value.(*SwaggerService); ok {
+		p.SwaggerService = assertion
+	} else {
+		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
+	}
+}
+
 // Init Init this API
 func (p *Router) Init() error {
-	// inject notification
-	p.SetSwaggerService = func(value interface{}) {
-		if assertion, ok := value.(*SwaggerService); ok {
-			p.SwaggerService = assertion
-		} else {
-			log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
-		}
-	}
 	return nil
 }
 

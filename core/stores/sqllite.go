@@ -51,11 +51,6 @@ type Store struct {
 	DbPath string
 }
 
-// IStore interface
-type IStore interface {
-	core_bean.IBean
-}
-
 // New constructor
 func (p *Store) New(tables []string, dbpath string) IStore {
 	bean := Store{SERVICE: &core_services.SERVICE{Bean: &core_bean.Bean{}}, Tables: tables, DbPath: dbpath}
@@ -76,7 +71,7 @@ func (p *Store) PostConstruct(name string) error {
 	// create all tables
 	for i := 0; i < len(p.Tables); i++ {
 		// prepare statement
-		statement, _ := p.database.Prepare("CREATE TABLE IF NOT EXISTS " + p.Tables[i] + " (id TEXT NOT NULL PRIMARY KEY, json TEXT)")
+		statement, _ := p.database.Prepare("CREATE TABLE IF NOT EXISTS " + p.Tables[i] + " (id TEXT NOT NULL PRIMARY KEY, json JSONB)")
 		statement.Exec()
 	}
 
@@ -189,7 +184,12 @@ func (p *Store) GetAll(entity models.IPersistent, array models.IPersistents) err
 	// get entity name
 	var entityName = entity.SetName()
 	// prepare statement
-	rows, _ := p.database.Query("SELECT id, json FROM " + entityName)
+	var query = "SELECT id, json FROM " + entityName
+	rows, err := p.database.Query(query)
+	if err != nil {
+		log.Println("Error:", err, " while retrieve all rows:", query)
+		return err
+	}
 	var id string
 	var data string
 	for rows.Next() {

@@ -23,101 +23,17 @@
 package business
 
 import (
-	"log"
-	"reflect"
-
 	core_bean "github.com/yroffin/go-boot-sqllite/core/bean"
 	"github.com/yroffin/go-boot-sqllite/core/models"
-	core_services "github.com/yroffin/go-boot-sqllite/core/services"
-	"github.com/yroffin/go-boot-sqllite/core/stores"
 )
-
-// CrudBusiness internal members
-type CrudBusiness struct {
-	// members
-	*core_services.SERVICE
-	// Store with injection mecanism
-	SetStore func(interface{}) `bean:"store-manager"`
-	Store    *stores.Store
-}
 
 // ICrudBusiness interface
 type ICrudBusiness interface {
 	core_bean.IBean
-	Get(models.IPersistent) error
-	Create(models.IPersistent) (interface{}, error)
-	Update(models.IPersistent) (interface{}, error)
-	Delete(models.IPersistent) (interface{}, error)
-	Patch(models.IPersistent) (interface{}, error)
-}
-
-// New constructor
-func (p *CrudBusiness) New() ICrudBusiness {
-	bean := CrudBusiness{SERVICE: &core_services.SERVICE{Bean: &core_bean.Bean{}}}
-	return &bean
-}
-
-// Init this bean
-func (p *CrudBusiness) Init() error {
-	// inject store
-	p.SetStore = func(value interface{}) {
-		if assertion, ok := value.(*stores.Store); ok {
-			p.Store = assertion
-		} else {
-			log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
-		}
-	}
-	return nil
-}
-
-// PostConstruct this bean
-func (p *CrudBusiness) PostConstruct(name string) error {
-	return nil
-}
-
-// Validate this bean
-func (p *CrudBusiness) Validate(name string) error {
-	return nil
-}
-
-// GetAll retrieve this bean by its id
-func (p *CrudBusiness) GetAll(toGet models.IPersistent, toGets models.IPersistents) error {
-	p.Store.GetAll(toGet, toGets)
-	return nil
-}
-
-// Get retrieve this bean by its id
-func (p *CrudBusiness) Get(toGet models.IPersistent) error {
-	p.Store.Get(toGet.GetID(), toGet)
-	return nil
-}
-
-// Create create a new persistent bean
-func (p *CrudBusiness) Create(toCreate models.IPersistent) (interface{}, error) {
-	p.Store.Create(toCreate)
-	return toCreate, nil
-}
-
-// Update an existing bean
-func (p *CrudBusiness) Update(toUpdate models.IPersistent) (interface{}, error) {
-	p.Store.Update(toUpdate.GetID(), toUpdate)
-	return toUpdate, nil
-}
-
-// Delete a bean
-func (p *CrudBusiness) Delete(toDelete models.IPersistent) (interface{}, error) {
-	p.Store.Delete(toDelete.GetID(), toDelete)
-	return toDelete, nil
-}
-
-// Delete a bean
-func (p *CrudBusiness) Truncate(toTruncate models.IPersistent) (interface{}, error) {
-	p.Store.Truncate(toTruncate)
-	return "Truncated", nil
-}
-
-// Patch a bean
-func (p *CrudBusiness) Patch(toPatch models.IPersistent) (interface{}, error) {
-	p.Store.Update(toPatch.GetID(), toPatch)
-	return toPatch, nil
+	GetAll(models.IPersistent, models.IPersistents) (models.IPersistents, error)
+	Get(models.IPersistent) (models.IPersistent, error)
+	Create(models.IPersistent) (models.IPersistent, error)
+	Update(models.IPersistent) (models.IPersistent, error)
+	Delete(models.IPersistent) (models.IPersistent, error)
+	Patch(models.IPersistent) (models.IPersistent, error)
 }

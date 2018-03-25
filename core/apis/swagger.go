@@ -23,7 +23,6 @@
 package apis
 
 import (
-	"log"
 	"reflect"
 	"strings"
 
@@ -137,18 +136,15 @@ func (p *SwaggerService) AddSchemes() {
 }
 
 // AddPaths method
-func (p *SwaggerService) AddPaths(tags string, route string, method string, sumary string, description string, args map[string]interface{}, query map[string]interface{}, in []interface{}, out map[string]interface{}) {
+func (p *SwaggerService) AddPaths(tags string, route string, method string, summary string, description string, args map[string]interface{}, query map[string]interface{}, in []interface{}, out map[string]interface{}) {
 	// Parameter path
 	for k := range args {
-		log.Println("Route:", route, ":"+k, "{"+k+"}")
 		route = strings.Replace(route, ":"+k, "{"+k+"}", -1)
-		log.Println("Route:", route)
 	}
-	log.Println("Route chenge:", route, args)
 	// Method body
 	detail := &models.SwaggerMethodBody{
 		Tags:        make([]string, 0),
-		Summary:     sumary,
+		Summary:     summary,
 		Description: description,
 		Consumes:    make([]string, 0),
 		Produces:    make([]string, 0),
@@ -197,9 +193,9 @@ func (p *SwaggerService) AddPaths(tags string, route string, method string, suma
 		detail.Parameters = append(detail.Parameters, prm)
 	}
 	// Response
-	for index := range out {
+	for index, outv := range out {
 		body := models.SwaggerMethodResp{Schema: make(map[string]string)}
-		var key = reflect.TypeOf(out[index]).String()
+		var key = reflect.TypeOf(outv).String()
 		var unary = strings.SplitAfter(key, ".")[1]
 
 		if strings.Contains(key, "[]") {
@@ -208,7 +204,7 @@ func (p *SwaggerService) AddPaths(tags string, route string, method string, suma
 		} else {
 			body.Description = "Instance of " + unary
 			// Add definitions
-			p.AddDefinition(unary, out[index])
+			p.AddDefinition(unary, outv)
 		}
 
 		body.Schema["$ref"] = "#/definitions/" + unary
@@ -240,7 +236,7 @@ func (p *SwaggerService) AddDefinition(name string, ptr interface{}) string {
 		Properties: make(map[string]models.SwaggerFormat),
 	}
 
-	var fields = reflect.TypeOf(ptr)
+	var fields = reflect.TypeOf(reflect.ValueOf(ptr))
 	for index := 0; index < fields.NumField(); index++ {
 		var fieldName = fields.Field(index).Name
 		var a, b = p.getType(fields.Field(index).Type.Name())

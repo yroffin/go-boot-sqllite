@@ -52,7 +52,7 @@ type Store struct {
 }
 
 // New constructor
-func (p *Store) New(tables []string, dbpath string) IStore {
+func (p *Store) New(tables []string, dbpath string) IDataStore {
 	bean := Store{SERVICE: &core_services.SERVICE{Bean: &core_bean.Bean{}}, Tables: tables, DbPath: dbpath}
 	return &bean
 }
@@ -101,7 +101,7 @@ func (p *Store) uuid(entity interface{}) (string, error) {
 // Create this persistent bean n store
 func (p *Store) Create(entity models.IPersistent) error {
 	// get entity name
-	var entityName = entity.SetName()
+	var entityName = entity.GetName()
 	// Fix timestamp
 	entity.SetTimestamp(models.JSONTime(time.Now()))
 	// fix UUID
@@ -117,7 +117,7 @@ func (p *Store) Create(entity models.IPersistent) error {
 // Update this persistent bean
 func (p *Store) Update(id string, entity models.IPersistent) error {
 	// get entity name
-	var entityName = entity.SetName()
+	var entityName = entity.GetName()
 	// Fix timestamp
 	entity.SetTimestamp(models.JSONTime(time.Now()))
 	// Fix ID
@@ -136,7 +136,7 @@ func (p *Store) Update(id string, entity models.IPersistent) error {
 // Delete this persistent bean
 func (p *Store) Delete(id string, entity models.IPersistent) error {
 	// get entity name
-	var entityName = entity.SetName()
+	var entityName = entity.GetName()
 	// Fix ID
 	entity.SetID(id)
 	// prepare statement
@@ -152,7 +152,7 @@ func (p *Store) Delete(id string, entity models.IPersistent) error {
 // Truncate method
 func (p *Store) Truncate(entity models.IPersistent) error {
 	// get entity name
-	var entityName = entity.SetName()
+	var entityName = entity.GetName()
 	// prepare statement
 	statement, _ := p.database.Prepare("DELETE FROM " + entityName)
 	res, _ := statement.Exec()
@@ -166,7 +166,7 @@ func (p *Store) Truncate(entity models.IPersistent) error {
 // Get this persistent bean
 func (p *Store) Get(id string, entity models.IPersistent) error {
 	// get entity name
-	var entityName = entity.SetName()
+	var entityName = entity.GetName()
 	// prepare statement
 	rows, _ := p.database.Query("SELECT id, json FROM "+entityName+" WHERE id = ?", &id)
 	var data string
@@ -182,7 +182,7 @@ func (p *Store) Get(id string, entity models.IPersistent) error {
 // GetAll this persistent bean
 func (p *Store) GetAll(entity models.IPersistent, array models.IPersistents) error {
 	// get entity name
-	var entityName = entity.SetName()
+	var entityName = entity.GetName()
 	// prepare statement
 	var query = "SELECT id, json FROM " + entityName
 	rows, err := p.database.Query(query)

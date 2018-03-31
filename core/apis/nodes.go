@@ -38,8 +38,8 @@ type Node struct {
 	Name string
 	// mounts
 	Crud interface{} `@crud:"/api/nodes"`
-	//Link interface{} `link:"/api/nodes" href:"nodes"`
-	Node INode `@autowired:"node-api"`
+	Link INode       `@autowired:"node-api" @link:"/api/nodes" @href:"nodes"`
+	Node INode       `@autowired:"node-api"`
 	// SwaggerService with injection mecanism
 	Swagger ISwaggerService `@autowired:"swagger"`
 }
@@ -47,7 +47,6 @@ type Node struct {
 // INode implements IBean
 type INode interface {
 	APIInterface
-	SetNodeApi(value interface{})
 }
 
 // New constructor
@@ -56,10 +55,19 @@ func (p *Node) New() INode {
 	return bean
 }
 
-// SetNodeApi injection
-func (p *Node) SetNodeApi(value interface{}) {
+// SetNode injection
+func (p *Node) SetNode(value interface{}) {
 	if assertion, ok := value.(INode); ok {
 		p.Node = assertion
+	} else {
+		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
+	}
+}
+
+// SetLink injection
+func (p *Node) SetLink(value interface{}) {
+	if assertion, ok := value.(INode); ok {
+		p.Link = assertion
 	} else {
 		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
 	}

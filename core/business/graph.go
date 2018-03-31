@@ -37,18 +37,18 @@ type GraphCrudBusiness struct {
 	// members
 	*core_services.SERVICE
 	// Store with injection mecanism
-	Store stores.IStore `@autowired:"cayley-manager"`
+	Store stores.IGraphStore `@autowired:"cayley-manager"`
 }
 
 // New constructor
-func (p *GraphCrudBusiness) New() ICrudBusiness {
+func (p *GraphCrudBusiness) New() ILinkBusiness {
 	bean := GraphCrudBusiness{SERVICE: &core_services.SERVICE{Bean: &core_bean.Bean{}}}
 	return &bean
 }
 
-// SetSqlliteManager injection
-func (p *GraphCrudBusiness) SetCayleyManager(value interface{}) {
-	if assertion, ok := value.(stores.IStore); ok {
+// SetStore injection
+func (p *GraphCrudBusiness) SetStore(value interface{}) {
+	if assertion, ok := value.(stores.IGraphStore); ok {
 		p.Store = assertion
 	} else {
 		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
@@ -70,44 +70,29 @@ func (p *GraphCrudBusiness) Validate(name string) error {
 	return nil
 }
 
-// GetAll retrieve this bean by its id
-func (p *GraphCrudBusiness) GetAll(toGet models.IPersistent, toGets models.IPersistents) (models.IPersistents, error) {
-	p.Store.GetAll(toGet, toGets)
+// CreateLink retrieve this link
+func (p *GraphCrudBusiness) CreateLink(toCreate models.IEdgeBean) (models.IEdgeBean, error) {
+	return toCreate, p.Store.CreateLink(toCreate)
+}
+
+// GetAllLink retrieve this bean by its id
+func (p *GraphCrudBusiness) GetAllLink(id string, toGets []models.IEdgeBean) ([]models.IEdgeBean, error) {
+	p.Store.GetAllLink(id, &toGets)
 	return toGets, nil
 }
 
-// Get retrieve this bean by its id
-func (p *GraphCrudBusiness) Get(toGet models.IPersistent) (models.IPersistent, error) {
-	p.Store.Get(toGet.GetID(), toGet)
-	return toGet, nil
+// DeleteLink a bean
+func (p *GraphCrudBusiness) DeleteLink(toDelete models.IEdgeBean) (models.IEdgeBean, error) {
+	return toDelete, p.Store.DeleteLink(toDelete)
 }
 
-// Create create a new persistent bean
-func (p *GraphCrudBusiness) Create(toCreate models.IPersistent) (models.IPersistent, error) {
-	p.Store.Create(toCreate)
-	return toCreate, nil
-}
-
-// Update an existing bean
-func (p *GraphCrudBusiness) Update(toUpdate models.IPersistent) (models.IPersistent, error) {
-	p.Store.Update(toUpdate.GetID(), toUpdate)
-	return toUpdate, nil
-}
-
-// Delete a bean
-func (p *GraphCrudBusiness) Delete(toDelete models.IPersistent) (models.IPersistent, error) {
-	p.Store.Delete(toDelete.GetID(), toDelete)
-	return toDelete, nil
-}
-
-// Delete a bean
-func (p *GraphCrudBusiness) Truncate(toTruncate models.IPersistent) (models.IPersistent, error) {
-	p.Store.Truncate(toTruncate)
+// TruncateLink a bean
+func (p *GraphCrudBusiness) TruncateLink(toTruncate models.IPersistent) (models.IPersistent, error) {
+	p.Store.TruncateLink(toTruncate)
 	return toTruncate, nil
 }
 
-// Patch a bean
-func (p *GraphCrudBusiness) Patch(toPatch models.IPersistent) (models.IPersistent, error) {
-	p.Store.Update(toPatch.GetID(), toPatch)
-	return toPatch, nil
+// PatchLink a bean
+func (p *GraphCrudBusiness) PatchLink(toPatch models.IEdgeBean) (models.IEdgeBean, error) {
+	return toPatch, p.Store.CreateLink(toPatch)
 }

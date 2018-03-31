@@ -31,8 +31,8 @@ import (
 	"github.com/yroffin/go-boot-sqllite/core/models"
 )
 
-// IStore interface
-type IStore interface {
+// IDataStore interface
+type IDataStore interface {
 	core_bean.IBean
 	Create(entity models.IPersistent) error
 	Update(id string, entity models.IPersistent) error
@@ -40,4 +40,14 @@ type IStore interface {
 	Truncate(entity models.IPersistent) error
 	Get(id string, entity models.IPersistent) error
 	GetAll(entity models.IPersistent, array models.IPersistents) error
+}
+
+// IGraphStore interface
+type IGraphStore interface {
+	core_bean.IBean
+	CreateLink(data models.IEdgeBean) error
+	DeleteLink(entity models.IEdgeBean) error
+	TruncateLink(entity models.IPersistent) error
+	GetLink(entity models.IEdgeBean) error
+	GetAllLink(id string, collection *[]models.IEdgeBean) error
 }

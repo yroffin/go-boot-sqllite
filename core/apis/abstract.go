@@ -42,11 +42,11 @@ type API struct {
 	// all mthods to declare
 	methods []APIMethod
 	// Router with injection mecanism
-	RouterBean IRouter `@autowired:"router"`
+	Router IRouter `@autowired:"router"`
 	// SqlCrudBusiness with injection mecanism
-	SqlCrudBusiness business.ICrudBusiness `@autowired:"sql-crud-business"`
-	// SqlGraphBusiness with injection mecanism
-	SqlGraphBusiness business.ICrudBusiness `@autowired:"graph-crud-business"`
+	SQLCrudBusiness business.ICrudBusiness `@autowired:"sql-crud-business"`
+	// GraphBusiness with injection mecanism
+	GraphBusiness business.ILinkBusiness `@autowired:"graph-crud-business"`
 	// Factory
 	Factory   func() models.IPersistent
 	Factories func() models.IPersistents
@@ -127,18 +127,17 @@ func (p *API) ScanHandler(swagger ISwaggerService, ptr interface{}) {
 			}
 		}
 		// declare a link handler
-		if len(field.Tag.Get("link")) > 0 {
-			assert, conv := value.Interface().(API)
+		if len(field.Tag.Get("@link")) > 0 {
+			assert, conv := value.Interface().(APIInterface)
 			if conv {
-				var linkName = field.Tag.Get("href")
+				var linkName = field.Tag.Get("@href")
 				log.Println("Info:", field.Name, " is interface{}")
-				p.append(ptr, field.Tag.Get("link")+"/:id/"+linkName, "HandlerLinkStaticGetAll", "GET", "application/json", "Get all", "Get all resources", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactories()})
-				p.append(ptr, field.Tag.Get("link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticGetByID", "GET", "application/json", "Get by id", "Get a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()})
-				p.append(ptr, field.Tag.Get("link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticPutByID", "PUT", "application/json", "Update by id", "Update a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()})
-				p.append(ptr, field.Tag.Get("link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticDeleteByID", "DELETE", "application/json", "Delete by id", "Delete a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()})
-				p.append(ptr, field.Tag.Get("link")+"/:id/"+linkName, "HandlerLinkStaticPost", "POST", "application/json", "Create link", "Create a new link on resource", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"201": assert.GetFactory()})
+				p.append(ptr, field.Tag.Get("@link")+"/:id/"+linkName, "HandlerLinkStaticGetAll", "GET", "application/json", "Get all", "Get all resources", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactories()})
+				p.append(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticGetByID", "GET", "application/json", "Get by id", "Get a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()})
+				p.append(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticPutByID", "PUT", "application/json", "Update by id", "Update a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()})
+				p.append(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticDeleteByID", "DELETE", "application/json", "Delete by id", "Delete a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()})
 			} else {
-				log.Println("Warning:", field.Name, " is not interface{}")
+				log.Println("Warning:", field.Name, "is not interface{}", reflect.TypeOf(value.Interface()))
 			}
 		}
 	}
@@ -163,19 +162,19 @@ func (p *API) append(ptr interface{}, path string, handler string, method string
 	p.methods = append(p.methods, APIMethod{path: path, handler: handler, method: method, addr: addr, typeMime: mime, summary: sum, desc: desc, args: args, query: query, in: in, out: out})
 }
 
-// SetSqlCrudBusiness inject CrudBusiness
-func (p *API) SetSqlCrudBusiness(value interface{}) {
+// SetSQLCrudBusiness inject CrudBusiness
+func (p *API) SetSQLCrudBusiness(value interface{}) {
 	if assertion, ok := value.(business.ICrudBusiness); ok {
-		p.SqlCrudBusiness = assertion
+		p.SQLCrudBusiness = assertion
 	} else {
 		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
 	}
 }
 
-// SetGraphCrudBusiness inject CrudBusiness
-func (p *API) SetGraphCrudBusiness(value interface{}) {
-	if assertion, ok := value.(business.ICrudBusiness); ok {
-		p.SqlGraphBusiness = assertion
+// SetGraphBusiness inject CrudBusiness
+func (p *API) SetGraphBusiness(value interface{}) {
+	if assertion, ok := value.(business.ILinkBusiness); ok {
+		p.GraphBusiness = assertion
 	} else {
 		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
 	}
@@ -184,7 +183,7 @@ func (p *API) SetGraphCrudBusiness(value interface{}) {
 // SetRouter inject RouterBean
 func (p *API) SetRouter(value interface{}) {
 	if assertion, ok := value.(IRouter); ok {
-		p.RouterBean = assertion
+		p.Router = assertion
 	} else {
 		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
 	}
@@ -215,23 +214,23 @@ func (p *API) PostConstruct(name string) error {
 func (p *API) Declare(data APIMethod, intf interface{}) error {
 	// verify type
 	if value, ok := intf.(func(c *gin.Context)); ok {
-		log.Printf("Declare handler() '%s' on '%s' with method '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (p.RouterBean).GetName(), data.typeMime)
+		log.Printf("Declare handler() '%s' on '%s' with method '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (p.Router).GetName(), data.typeMime)
 		// declare it to the router
-		(p.RouterBean).HandleFunc(data.path, value, data.method, data.typeMime)
+		(p.Router).HandleFunc(data.path, value, data.method, data.typeMime)
 		return nil
 	}
 	// verify type
 	if value, ok := intf.(func() (string, error)); ok {
-		log.Printf("Declare function() '%s' on '%s' with method '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (p.RouterBean).GetName(), data.typeMime)
+		log.Printf("Declare function() '%s' on '%s' with method '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (p.Router).GetName(), data.typeMime)
 		// declare it to the router
-		(p.RouterBean).HandleFuncString(data.path, value, data.method, data.typeMime)
+		(p.Router).HandleFuncString(data.path, value, data.method, data.typeMime)
 		return nil
 	}
 	// verify type
 	if value, ok := intf.(func(string) (string, error)); ok {
-		log.Printf("Declare function() '%s' on '%s' with method with id '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (p.RouterBean).GetName(), data.typeMime)
+		log.Printf("Declare function() '%s' on '%s' with method with id '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (p.Router).GetName(), data.typeMime)
 		// declare it to the router
-		(p.RouterBean).HandleFuncStringWithId(data.path, value, data.method, data.typeMime)
+		(p.Router).HandleFuncStringWithId(data.path, value, data.method, data.typeMime)
 		return nil
 	}
 	// Error case
@@ -374,7 +373,7 @@ func (p *API) HandlerStaticPatchByID() func(c *gin.Context) {
 func (p *API) HandlerLinkStaticGetAll() func(c *gin.Context) {
 	anonymous := func(c *gin.Context) {
 		c.Header("Content-type", "application/json")
-		data, err := p.HandlerGetAll()
+		data, err := p.HandlerLinkGetAll(c.Param("id"))
 		if err != nil {
 			c.String(400, "{\"message\":\"\"}")
 			return
@@ -398,36 +397,12 @@ func (p *API) HandlerLinkStaticGetByID() func(c *gin.Context) {
 	return anonymous
 }
 
-// HandlerLinkStaticPost is the POST handler
-func (p *API) HandlerLinkStaticPost() func(c *gin.Context) {
-	anonymous := func(c *gin.Context) {
-		c.Header("Content-type", "application/json")
-		body, _ := ioutil.ReadAll(c.Request.Body)
-		if len(c.Query("task")) > 0 {
-			data, err := p.HandlerTasks(c.Query("task"), string(body))
-			if err != nil {
-				c.String(400, "{\"message\":\"\"}")
-				return
-			}
-			c.IndentedJSON(202, data)
-		} else {
-			data, err := p.HandlerPost(string(body))
-			if err != nil {
-				c.String(400, "{\"message\":\"\"}")
-				return
-			}
-			c.IndentedJSON(201, data)
-		}
-	}
-	return anonymous
-}
-
 // HandlerLinkStaticPutByID is the PUT by ID handler
 func (p *API) HandlerLinkStaticPutByID() func(c *gin.Context) {
 	anonymous := func(c *gin.Context) {
 		c.Header("Content-type", "application/json")
 		body, _ := ioutil.ReadAll(c.Request.Body)
-		data, err := p.HandlerPutByID(c.Param("id"), string(body))
+		data, err := p.HandlerLinkPutByID(c.Param("id"), c.Param("link"), string(body))
 		if err != nil {
 			c.String(400, "{\"message\":\"\"}")
 			return
@@ -441,7 +416,8 @@ func (p *API) HandlerLinkStaticPutByID() func(c *gin.Context) {
 func (p *API) HandlerLinkStaticDeleteByID() func(c *gin.Context) {
 	anonymous := func(c *gin.Context) {
 		c.Header("Content-type", "application/json")
-		data, err := p.HandlerDeleteByID(c.Param("id"))
+		body, _ := ioutil.ReadAll(c.Request.Body)
+		data, err := p.HandlerLinkDeleteByID(c.Param("id"), c.Param("link"), string(body))
 		if err != nil {
 			c.String(400, "{\"message\":\"\"}")
 			return
@@ -496,14 +472,36 @@ func (p *API) HandlerPatchByID(id string, body string) (interface{}, error) {
 	return p.GenericPatchByID(id, body, p.Factory())
 }
 
+// HandlerLinkPutByID update by id
+func (p *API) HandlerLinkPutByID(src string, dst string, body string) (interface{}, error) {
+	source := p.Factory()
+	p.GenericGetByID(src, source)
+	target := p.Factory()
+	p.GenericGetByID(dst, target)
+	toCreate := (&models.EdgeBean{}).New(source.GetName(), source.GetID(), target.GetName(), target.GetID(), "HREF")
+	return p.GenericLinkPutByID(toCreate)
+}
+
+// HandlerLinkDeleteByID update by id
+func (p *API) HandlerLinkDeleteByID(src string, dst string, body string) (interface{}, error) {
+	source := p.Factory()
+	p.GenericGetByID(src, source)
+	target := p.Factory()
+	p.GenericGetByID(dst, target)
+	toDelete := &models.EdgeBean{}
+	json.Unmarshal([]byte(body), toDelete)
+	return p.GenericLinkDeleteByID(toDelete)
+}
+
 // HandlerLinkGetAll get all
 func (p *API) HandlerLinkGetAll(id string) (interface{}, error) {
-	return p.GenericGetAll(p.Factory(), p.Factories())
+	link := make([]models.IEdgeBean, 0)
+	return p.GenericLinkGetAll(id, link)
 }
 
 // GenericGetAll default method
 func (p *API) GenericGetAll(toGet models.IPersistent, toGets models.IPersistents) (interface{}, error) {
-	p.SqlCrudBusiness.GetAll(toGet, toGets)
+	p.SQLCrudBusiness.GetAll(toGet, toGets)
 	return toGets.Get(), nil
 }
 
@@ -516,7 +514,7 @@ func (p *API) GenericGetByID(id string, toGet models.IPersistent) (interface{}, 
 // GetByID default method
 func (p *API) GetByID(id string, toGet models.IPersistent) error {
 	toGet.SetID(id)
-	p.SqlCrudBusiness.Get(toGet)
+	p.SQLCrudBusiness.Get(toGet)
 	return nil
 }
 
@@ -529,7 +527,7 @@ func (p *API) GenericPost(body string, toCreate models.IPersistent) (interface{}
 		log.Printf("Error, while Unmarshaling body %v - %v", body, result)
 		return body, result
 	}
-	bean, _ := p.SqlCrudBusiness.Create(toCreate)
+	bean, _ := p.SQLCrudBusiness.Create(toCreate)
 	return bean, nil
 }
 
@@ -538,7 +536,7 @@ func (p *API) GenericPutByID(id string, body string, toUpdate models.IPersistent
 	toUpdate.SetID(id)
 	var bin = []byte(body)
 	json.Unmarshal(bin, &toUpdate)
-	bean, _ := p.SqlCrudBusiness.Update(toUpdate)
+	bean, _ := p.SQLCrudBusiness.Update(toUpdate)
 	return bean, nil
 }
 
@@ -547,14 +545,32 @@ func (p *API) GenericPatchByID(id string, body string, toPatch models.IPersisten
 	toPatch.SetID(id)
 	var bin = []byte(body)
 	json.Unmarshal(bin, &toPatch)
-	bean, _ := p.SqlCrudBusiness.Patch(toPatch)
+	bean, _ := p.SQLCrudBusiness.Patch(toPatch)
 	return bean, nil
 }
 
 // GenericDeleteByID default method
 func (p *API) GenericDeleteByID(id string, toDelete models.IPersistent) (interface{}, error) {
 	toDelete.SetID(id)
-	p.SqlCrudBusiness.Get(toDelete)
-	old, _ := p.SqlCrudBusiness.Delete(toDelete)
+	p.SQLCrudBusiness.Get(toDelete)
+	old, _ := p.SQLCrudBusiness.Delete(toDelete)
 	return old, nil
+}
+
+// GenericLinkPutByID default method
+func (p *API) GenericLinkPutByID(assoc models.IEdgeBean) (interface{}, error) {
+	bean, _ := p.GraphBusiness.CreateLink(assoc)
+	return bean, nil
+}
+
+// GenericLinkDeleteByID default method
+func (p *API) GenericLinkDeleteByID(assoc models.IEdgeBean) (interface{}, error) {
+	bean, _ := p.GraphBusiness.DeleteLink(assoc)
+	return bean, nil
+}
+
+// GenericLinkGetAll default method
+func (p *API) GenericLinkGetAll(id string, links []models.IEdgeBean) (interface{}, error) {
+	bean, _ := p.GraphBusiness.GetAllLink(id, links)
+	return bean, nil
 }

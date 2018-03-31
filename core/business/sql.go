@@ -37,7 +37,7 @@ type SqlCrudBusiness struct {
 	// members
 	*core_services.SERVICE
 	// Store with injection mecanism
-	Store stores.IStore `@autowired:"sqllite-manager"`
+	Store stores.IDataStore `@autowired:"sqllite-manager"`
 }
 
 // New constructor
@@ -46,9 +46,9 @@ func (p *SqlCrudBusiness) New() ICrudBusiness {
 	return &bean
 }
 
-// SetSqlliteManager injection
-func (p *SqlCrudBusiness) SetSqlliteManager(value interface{}) {
-	if assertion, ok := value.(stores.IStore); ok {
+// SetStore injection
+func (p *SqlCrudBusiness) SetStore(value interface{}) {
+	if assertion, ok := value.(stores.IDataStore); ok {
 		p.Store = assertion
 	} else {
 		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))

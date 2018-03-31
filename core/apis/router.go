@@ -40,7 +40,7 @@ type Router struct {
 	// gin router
 	Engine *gin.Engine
 	// SwaggerService with injection mecanism
-	SwaggerService *SwaggerService `@autowired:"swagger"`
+	Swagger *SwaggerService `@autowired:"swagger"`
 }
 
 // IRouter Test all package methods
@@ -70,7 +70,7 @@ func (p *Router) New() IRouter {
 // SetSwagger inject notification
 func (p *Router) SetSwagger(value interface{}) {
 	if assertion, ok := value.(*SwaggerService); ok {
-		p.SwaggerService = assertion
+		p.Swagger = assertion
 	} else {
 		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
 	}
@@ -103,7 +103,7 @@ func (p *Router) Validate(name string) error {
 // Swagger method
 func (p *Router) SwaggerModel() func(*gin.Context) {
 	anonymous := func(c *gin.Context) {
-		c.IndentedJSON(200, p.SwaggerService.SwaggerModel())
+		c.IndentedJSON(200, p.Swagger.SwaggerModel())
 	}
 	return anonymous
 }

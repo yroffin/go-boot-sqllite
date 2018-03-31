@@ -29,7 +29,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"time"
 
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
@@ -57,7 +56,7 @@ type Graph struct {
 }
 
 // New constructor
-func (p *Graph) New(tables []string, dbpath string) IStore {
+func (p *Graph) New(tables []string, dbpath string) IGraphStore {
 	bean := Graph{SERVICE: &core_services.SERVICE{Bean: &core_bean.Bean{}}, Tables: tables, DbPath: dbpath}
 	return &bean
 }
@@ -88,7 +87,7 @@ func (p *Graph) Validate(name string) error {
 }
 
 // uuid generates a random UUID according to RFC 4122
-func (p *Graph) uuid(entity interface{}) (string, error) {
+func (p *Graph) uuid() (string, error) {
 	uuid := make([]byte, 16)
 	n, err := io.ReadFull(rand.Reader, uuid)
 	if n != len(uuid) || err != nil {
@@ -102,65 +101,37 @@ func (p *Graph) uuid(entity interface{}) (string, error) {
 	return text, nil
 }
 
-// Create this persistent bean n store
-func (p *Graph) Create(entity models.IPersistent) error {
-	// get entity name
-	var entityName = entity.SetName()
-	// Fix timestamp
-	entity.SetTimestamp(models.JSONTime(time.Now()))
+// CreateLink in graph db
+func (p *Graph) CreateLink(data models.IEdgeBean) error {
 	// fix UUID
-	uuid, _ := p.uuid(entity)
-	entity.SetID(uuid)
+	uuid, _ := p.uuid()
+	data.SetID(uuid)
 	// insert
-	data, _ := json.Marshal(entity)
-	p.store.AddQuad(quad.Make("/"+entityName+"/"+uuid, "is", entityName, nil))
-	p.store.AddQuad(quad.Make("/"+entityName+"/"+uuid, "uuid", uuid, nil))
-	p.store.AddQuad(quad.Make("/"+entityName+"/"+uuid, "class", "XXXX", nil))
-	p.store.AddQuad(quad.Make("/"+entityName+"/"+uuid, "link", string(data), nil))
+	jsonData, _ := json.Marshal(data)
+	quad := quad.Make("/"+data.GetSource()+"/"+data.GetSourceID(), data.GetLink()+":"+uuid, "/"+data.GetTarget()+"/"+data.GetTargetID(), string(jsonData))
+	log.Println("QUAD:", quad, string(jsonData))
+	p.store.AddQuad(quad)
 	return nil
 }
 
-// Update this persistent bean
-func (p *Graph) Update(id string, entity models.IPersistent) error {
-	// get entity name
-	//var entityName = entity.SetName()
-	// Fix timestamp
-	entity.SetTimestamp(models.JSONTime(time.Now()))
-	// Fix ID
-	entity.SetID(id)
-	// prepare statement
-	//node := cayley.StartPath(p.store).Has(id)
-	/*
-		data, _ := json.Marshal(entity)
-		res, _ := statement.Exec(string(data), id)
-		rowAffected, _ := res.RowsAffected()
-		if rowAffected == 0 {
-			log.Printf("'%s' with id '%v' affected %d row(s)", "UPDATE "+entityName+" SET json = ? WHERE id = ?", id, rowAffected)
+// DeleteLink this persistent bean
+func (p *Graph) DeleteLink(toDelete models.IEdgeBean) error {
+	it := p.store.QuadsAllIterator()
+	for it.Next(context.Background()) {
+		qu := p.store.Quad(it.Result())
+		if qu.Predicate.Native().(string) == toDelete.GetLink()+":"+toDelete.GetID() {
+			log.Println("Remove:", qu.Subject.Native(), qu.Predicate.Native(), qu.Object.Native())
+			tx := cayley.NewTransaction()
+			tx.RemoveQuad(qu)
+			p.store.ApplyTransaction(tx)
 		}
-	*/
+	}
+
 	return nil
 }
 
-// Delete this persistent bean
-func (p *Graph) Delete(id string, entity models.IPersistent) error {
-	// get entity name
-	//var entityName = entity.SetName()
-	// Fix ID
-	entity.SetID(id)
-	// prepare statement
-	/*
-		statement, _ := p.database.Prepare("DELETE FROM " + entityName + " WHERE id = ?")
-		res, _ := statement.Exec(id)
-		rowAffected, _ := res.RowsAffected()
-		if rowAffected == 0 {
-			log.Printf("'%s' with id '%v' affected %d row(s)", "DELETE FROM "+entityName+" WHERE id = ?", id, rowAffected)
-		}
-	*/
-	return nil
-}
-
-// Truncate method
-func (p *Graph) Truncate(entity models.IPersistent) error {
+// TruncateLink method
+func (p *Graph) TruncateLink(entity models.IPersistent) error {
 	// get entity name
 	//var entityName = entity.SetName()
 	// prepare statement
@@ -175,8 +146,8 @@ func (p *Graph) Truncate(entity models.IPersistent) error {
 	return nil
 }
 
-// Get this persistent bean
-func (p *Graph) Get(id string, entity models.IPersistent) error {
+// GetLink this persistent bean
+func (p *Graph) GetLink(entity models.IEdgeBean) error {
 	// get entity name
 	//var entityName = entity.SetName()
 	// prepare statement
@@ -193,41 +164,16 @@ func (p *Graph) Get(id string, entity models.IPersistent) error {
 	return nil
 }
 
-// GetAll this persistent bean
-func (p *Graph) GetAll(entity models.IPersistent, array models.IPersistents) error {
-	// get entity name
-	//var entityName = entity.SetName()
-
-	log.Println("Size:", p.store.Size())
-
-	var query = `
-var output = g.V().As('source').Has('is', 'Node').Out(null, 'edge').As('target').All()
-g.Emit(output)
-`
-	p.QueryGizmo(query, "")
-
-	query = `
-var output = g.V('/Node/fd30437c-db55-456e-b8b9-dc6401260f32').As('source').Has('is', 'Node').Out(null, 'edge').As('target').All()
-g.Emit(output)
-`
-	p.QueryGizmo(query, "")
-
-	// get entity name
-	//var entityName = entity.SetName()
-	// prepare statement
-	/*
-		rows, _ := p.database.Query("SELECT id, json FROM " + entityName)
-		var id string
-		var data string
-		for rows.Next() {
-			rows.Scan(&id, &data)
-			var bin = []byte(data)
-			copy := entity.Copy()
-			json.Unmarshal(bin, &copy)
-			copy.SetID(id)
-			array.Add(copy)
+// GetAllLink this persistent bean
+func (p *Graph) GetAllLink(id string, array *[]models.IEdgeBean) error {
+	var query = `g.V().As('source').Out(null, 'edge').As('target').Labels().As('label').All()`
+	results, _ := p.QueryGizmo(query, "")
+	for _, v := range results {
+		if id == v.GetSourceID() {
+			*array = append(*array, v)
 		}
-	*/
+	}
+
 	return nil
 }
 
@@ -238,30 +184,31 @@ func quadValueToString(v quad.Value) string {
 	return quad.StringOf(v)
 }
 
-// Query query gizmo
-func (p *Graph) QueryGizmo(text string, tag string) ([]string, error) {
+// QueryGizmo query gizmo
+func (p *Graph) QueryGizmo(text string, tag string) ([]models.IEdgeBean, error) {
 	session := gizmo.NewSession(p.store)
 	c := make(chan query.Result, 1)
 	go func() {
 		session.Execute(context.TODO(), text, c, -1)
 	}()
 
-	// resultSet := make(map[string]map[string]string)
+	resultSet := make([]models.IEdgeBean, 0)
 
-	var results []string
 	for res := range c {
 		if err := res.Err(); err != nil {
-			return results, err
+			return nil, err
 		}
 		switch result := res.(type) {
 		case *gizmo.Result:
-			//log.Println("Result/Meta:", result.Meta)
-			//log.Println("Result/Tags:", result.Tags)
-			log.Println("Source:", p.store.NameOf(result.Tags["source"]).String(), result.Tags["source"].Key(), "Edge:", p.store.NameOf(result.Tags["edge"]).String(), "Target:", p.store.NameOf(result.Tags["target"]).String())
+			// Tags are source, target, edge
+			// they also stored in native labels
+			data := models.EdgeBean{}
+			json.Unmarshal([]byte(p.store.NameOf(result.Tags["label"]).Native().(string)), &data)
+			resultSet = append(resultSet, &data)
 			break
 		default:
 			log.Println("Unknown:", res)
 		}
 	}
-	return results, nil
+	return resultSet, nil
 }

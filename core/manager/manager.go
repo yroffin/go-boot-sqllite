@@ -164,7 +164,7 @@ func (m *Manager) Wait() error {
 
 // Inject this API
 func (m *Manager) Inject(name string, intf interface{}) error {
-	m.autowire(false, 0, intf, reflect.ValueOf(intf))
+	m.autowire(false, 0, name, intf, reflect.ValueOf(intf))
 	return nil
 }
 
@@ -174,7 +174,7 @@ func (m *Manager) isPrivate(val reflect.StructField) bool {
 }
 
 // dumpFields dump all fields
-func (m *Manager) autowire(debug bool, level int, intf interface{}, val reflect.Value) {
+func (m *Manager) autowire(debug bool, level int, name string, intf interface{}, val reflect.Value) {
 	if debug {
 		log.Printf("%02d: **** METHOD ***", level)
 		for i := 0; i < val.NumMethod(); i++ {
@@ -188,7 +188,7 @@ func (m *Manager) autowire(debug bool, level int, intf interface{}, val reflect.
 	// Interface case and Pointer case
 	if kind == reflect.Interface || kind == reflect.Ptr {
 		if !val.IsNil() {
-			m.autowire(debug, level+1, intf, val.Elem())
+			m.autowire(debug, level+1, name, intf, val.Elem())
 		}
 		return
 	}
@@ -233,15 +233,11 @@ func (m *Manager) autowire(debug bool, level int, intf interface{}, val reflect.
 				if valueField.IsNil() {
 					var beanName = tag.Get("@autowired")
 					var myBean = m.MapOfBeans[beanName]
-					var camelCase = ""
-					for _, word := range strings.Split(beanName, "-") {
-						camelCase += strings.ToUpper(word[:1]) + strings.ToLower(word[1:])
-					}
-					var camelCaseOperation = "Set" + camelCase
+					var camelCaseOperation = "Set" + typeField.Name
 					var setter = reflect.ValueOf(intf).MethodByName(camelCaseOperation)
 					arr := [1]reflect.Value{reflect.ValueOf(myBean)}
 					var arguments = arr[:1]
-					log.Printf("Apply: '%s' on %v with %v(%v)", camelCaseOperation, beanName, setter, arguments)
+					log.Printf("Apply: '%s' on %v with %v(%v) - %v", camelCaseOperation, beanName, setter, arguments, name)
 					setter.Call(arguments)
 				}
 			}
@@ -255,7 +251,7 @@ func (m *Manager) autowire(debug bool, level int, intf interface{}, val reflect.
 		if !m.isPrivate(typeField) {
 			// autowired fields are excluded for recursive init
 			if !(len(tag.Get("@autowired")) > 0) {
-				m.autowire(debug, level+1, valueField.Interface(), valueField)
+				m.autowire(debug, level+1, name, valueField.Interface(), valueField)
 			}
 		}
 	}

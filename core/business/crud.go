@@ -30,10 +30,21 @@ import (
 // ICrudBusiness interface
 type ICrudBusiness interface {
 	core_bean.IBean
+	// Relationnal data
 	GetAll(models.IPersistent, models.IPersistents) (models.IPersistents, error)
 	Get(models.IPersistent) (models.IPersistent, error)
 	Create(models.IPersistent) (models.IPersistent, error)
 	Update(models.IPersistent) (models.IPersistent, error)
 	Delete(models.IPersistent) (models.IPersistent, error)
 	Patch(models.IPersistent) (models.IPersistent, error)
+}
+
+// ILinkBusiness interface
+type ILinkBusiness interface {
+	core_bean.IBean
+	// Linked ones
+	CreateLink(toCreate models.IEdgeBean) (models.IEdgeBean, error)
+	DeleteLink(toCreate models.IEdgeBean) (models.IEdgeBean, error)
+	PatchLink(toPatch models.IEdgeBean) (models.IEdgeBean, error)
+	GetAllLink(id string, toGets []models.IEdgeBean) ([]models.IEdgeBean, error)
 }

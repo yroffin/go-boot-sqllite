@@ -22,8 +22,8 @@
 // SOFTWARE.
 package models
 
-// NodeBean simple command model
-type NodeBean struct {
+// EdgeBean simple command model
+type EdgeBean struct {
 	// Id
 	ID string `json:"id"`
 	// Timestamp
@@ -34,57 +34,103 @@ type NodeBean struct {
 	Type string `json:"type"`
 	// Extended internal store
 	Extended map[string]interface{} `json:"extended"`
+	// Source
+	Source string `json:"source"`
+	// SourceID
+	SourceID string `json:"sourceId"`
+	// Target
+	Target string `json:"target"`
+	// TargetID
+	TargetID string `json:"targetId"`
+	// Link
+	Link string `json:"link"`
 }
 
-// INodeBean interface
-type INodeBean interface {
+// IEdgeBean interface
+type IEdgeBean interface {
 	// inherit persistent behaviour
 	IPersistent
 	// inherit ValueBean behaviour
 	IValueBean
-	// command
+	// get Type
 	GetType() string
+	GetSource() string
+	GetSourceID() string
+	GetTarget() string
+	GetTargetID() string
+	GetLink() string
 }
 
 // New constructor
-func (p *NodeBean) New() INodeBean {
-	bean := NodeBean{}
+func (p *EdgeBean) New(source string, sourceID string, target string, targetID string, link string) IEdgeBean {
+	bean := EdgeBean{}
 	bean.Extended = make(map[string]interface{})
+	bean.Source = source
+	bean.Source = source
+	bean.SourceID = sourceID
+	bean.Target = target
+	bean.TargetID = targetID
+	bean.Link = link
 	return &bean
 }
 
-// SetName get set name
-func (p *NodeBean) GetName() string {
-	return "Node"
+// GetSource get source name for this edge
+func (p *EdgeBean) GetSource() string {
+	return p.Source
+}
+
+// GetSourceID get source name for this edge
+func (p *EdgeBean) GetSourceID() string {
+	return p.SourceID
+}
+
+// GetTarget get source name for this edge
+func (p *EdgeBean) GetTarget() string {
+	return p.Target
+}
+
+// GetTargetID get source name for this edge
+func (p *EdgeBean) GetTargetID() string {
+	return p.TargetID
+}
+
+// GetLink get source name for this edge
+func (p *EdgeBean) GetLink() string {
+	return p.Link
+}
+
+// GetName get set name
+func (p *EdgeBean) GetName() string {
+	return "Edge"
 }
 
 // GetType get set name
-func (p *NodeBean) GetType() string {
+func (p *EdgeBean) GetType() string {
 	return p.Type
 }
 
 // GetID retrieve ID
-func (p *NodeBean) GetID() string {
+func (p *EdgeBean) GetID() string {
 	return p.ID
 }
 
 // SetID retrieve ID
-func (p *NodeBean) SetID(ID string) {
+func (p *EdgeBean) SetID(ID string) {
 	p.ID = ID
 }
 
 // Set get set name
-func (p *NodeBean) Set(key string, value interface{}) {
+func (p *EdgeBean) Set(key string, value interface{}) {
 }
 
 // SetString get set name
-func (p *NodeBean) SetString(key string, value string) {
+func (p *EdgeBean) SetString(key string, value string) {
 	// Call super method
 	IValueBean(p).SetString(key, value)
 }
 
 // Get get set name
-func (p *NodeBean) GetAsString(key string) string {
+func (p *EdgeBean) GetAsString(key string) string {
 	switch key {
 	default:
 		// Call super method
@@ -93,63 +139,63 @@ func (p *NodeBean) GetAsString(key string) string {
 }
 
 // Get get set name
-func (p *NodeBean) GetAsStringArray(key string) []string {
+func (p *EdgeBean) GetAsStringArray(key string) []string {
 	// Call super method
 	return IValueBean(p).GetAsStringArray(key)
 }
 
 // ToString stringify this commnd
-func (p *NodeBean) ToString() string {
+func (p *EdgeBean) ToString() string {
 	// Call super method
 	return IValueBean(p).ToString()
 }
 
 // ToJSON stringify this commnd
-func (p *NodeBean) ToJSON() string {
+func (p *EdgeBean) ToJSON() string {
 	// Call super method
 	return IValueBean(p).ToJSON()
 }
 
 // SetTimestamp set timestamp
-func (p *NodeBean) SetTimestamp(stamp JSONTime) {
+func (p *EdgeBean) SetTimestamp(stamp JSONTime) {
 	p.Timestamp = stamp
 }
 
 // GetTimestamp get timestamp
-func (p *NodeBean) GetTimestamp() JSONTime {
+func (p *EdgeBean) GetTimestamp() JSONTime {
 	return p.Timestamp
 }
 
 // Copy retrieve ID
-func (p *NodeBean) Copy() IPersistent {
+func (p *EdgeBean) Copy() IPersistent {
 	clone := *p
 	return &clone
 }
 
-// NodeBeans simple bean model
-type NodeBeans struct {
+// EdgeBeans simple bean model
+type EdgeBeans struct {
 	// Collection
 	Collection []IPersistent `json:"collections"`
 }
 
 // New constructor
-func (p *NodeBeans) New() IPersistents {
-	bean := NodeBeans{Collection: make([]IPersistent, 0)}
+func (p *EdgeBeans) New() IPersistents {
+	bean := EdgeBeans{Collection: make([]IPersistent, 0)}
 	return &bean
 }
 
 // Add new bean
-func (p *NodeBeans) Add(bean IPersistent) {
+func (p *EdgeBeans) Add(bean IPersistent) {
 	p.Collection = append(p.Collection, bean)
 }
 
 // Get collection of bean
-func (p *NodeBeans) Get() []IPersistent {
+func (p *EdgeBeans) Get() []IPersistent {
 	return p.Collection
 }
 
 // Index read a single element
-func (p *NodeBeans) Index(index int) INodeBean {
+func (p *EdgeBeans) Index(index int) INodeBean {
 	data, ok := p.Collection[index].(*NodeBean)
 	if ok {
 		return data

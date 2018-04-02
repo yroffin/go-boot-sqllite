@@ -107,7 +107,7 @@ func (p *Graph) Statistics() ([]IStats, error) {
 		qu := p.store.Quad(it.Result())
 		stat := StoreStats{}
 		stat.Key = qu.Subject.Native().(string)
-		stat.Value = qu.Predicate.Native().(string) + " " + qu.Object.Native().(string)
+		stat.Value = qu.Predicate.Native().(string) + " " + qu.Object.Native().(string) + " " + qu.Label.Native().(string)
 		stats = append(stats, &stat)
 	}
 	return stats, nil

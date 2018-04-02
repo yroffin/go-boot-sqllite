@@ -86,6 +86,33 @@ func (p *Graph) Validate(name string) error {
 	return nil
 }
 
+// Clear Init this bean
+func (p *Graph) Clear() error {
+	it := p.store.QuadsAllIterator()
+	for it.Next(context.Background()) {
+		qu := p.store.Quad(it.Result())
+		tx := cayley.NewTransaction()
+		tx.RemoveQuad(qu)
+		p.store.ApplyTransaction(tx)
+	}
+
+	return nil
+}
+
+// Statistics some statistics
+func (p *Graph) Statistics() ([]IStats, error) {
+	stats := make([]IStats, 0)
+	it := p.store.QuadsAllIterator()
+	for it.Next(context.Background()) {
+		qu := p.store.Quad(it.Result())
+		stat := StoreStats{}
+		stat.Key = qu.Subject.Native().(string)
+		stat.Value = qu.Predicate.Native().(string) + " " + qu.Object.Native().(string)
+		stats = append(stats, &stat)
+	}
+	return stats, nil
+}
+
 // uuid generates a random UUID according to RFC 4122
 func (p *Graph) uuid() (string, error) {
 	uuid := make([]byte, 16)
@@ -109,7 +136,7 @@ func (p *Graph) CreateLink(data models.IEdgeBean) error {
 	// insert
 	jsonData, _ := json.Marshal(data)
 	quad := quad.Make("/"+data.GetSource()+"/"+data.GetSourceID(), data.GetLink()+":"+uuid, "/"+data.GetTarget()+"/"+data.GetTargetID(), string(jsonData))
-	log.Println("QUAD:", quad, string(jsonData))
+	log.Println("Create:", quad, string(jsonData))
 	p.store.AddQuad(quad)
 	return nil
 }
@@ -132,35 +159,11 @@ func (p *Graph) DeleteLink(toDelete models.IEdgeBean) error {
 
 // TruncateLink method
 func (p *Graph) TruncateLink(entity models.IPersistent) error {
-	// get entity name
-	//var entityName = entity.SetName()
-	// prepare statement
-	/*
-		statement, _ := p.database.Prepare("DELETE FROM " + entityName)
-		res, _ := statement.Exec()
-		rowAffected, _ := res.RowsAffected()
-		if rowAffected == 0 {
-			log.Printf("'%s' affected %d row(s)", "DELETE FROM "+entityName, rowAffected)
-		}
-	*/
 	return nil
 }
 
 // GetLink this persistent bean
 func (p *Graph) GetLink(entity models.IEdgeBean) error {
-	// get entity name
-	//var entityName = entity.SetName()
-	// prepare statement
-	/*
-		rows, _ := p.database.Query("SELECT id, json FROM "+entityName+" WHERE id = ?", &id)
-		var data string
-		for rows.Next() {
-			rows.Scan(&id, &data)
-			var bin = []byte(data)
-			entity.SetID(id)
-			json.Unmarshal(bin, entity)
-		}
-	*/
 	return nil
 }
 
@@ -175,13 +178,6 @@ func (p *Graph) GetAllLink(id string, array *[]models.IEdgeBean) error {
 	}
 
 	return nil
-}
-
-func quadValueToString(v quad.Value) string {
-	if s, ok := v.(quad.String); ok {
-		return string(s)
-	}
-	return quad.StringOf(v)
 }
 
 // QueryGizmo query gizmo

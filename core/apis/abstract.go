@@ -28,6 +28,7 @@ import (
 	"io/ioutil"
 	"log"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -48,8 +49,10 @@ type API struct {
 	// GraphBusiness with injection mecanism
 	GraphBusiness business.ILinkBusiness `@autowired:"graph-crud-business"`
 	// Factory
-	Factory   func() models.IPersistent
-	Factories func() models.IPersistents
+	Factory          func() models.IPersistent
+	Factories        func() models.IPersistents
+	HandlerTasks     func(name string, body string) (interface{}, int, error)
+	HandlerTasksByID func(id string, name string, body string) (interface{}, int, error)
 }
 
 // APIMethod single structure to modelise api declaration
@@ -70,8 +73,13 @@ type APIMethod struct {
 	query map[string]interface{}
 }
 
-// APIInterface all package methods
-type APIInterface interface {
+// CrudHandler single structure to modelise api declaration
+type CrudHandler interface {
+	HandlerPost(body string) (interface{}, error)
+}
+
+// IAPI all package methods
+type IAPI interface {
 	bean.IBean
 	Declare(APIMethod, interface{}) error
 	// Data handled by this API
@@ -79,17 +87,17 @@ type APIInterface interface {
 	GetFactories() models.IPersistents
 }
 
-// Factory return on new bean
+// GetFactory return on new bean
 func (p *API) GetFactory() models.IPersistent {
 	return p.Factory()
 }
 
-// Factories return a bean list
+// GetFactories return a bean list
 func (p *API) GetFactories() models.IPersistents {
 	return p.Factories()
 }
 
-// Call
+// Call params
 func Call(params ...interface{}) []reflect.Value {
 	in := make([]reflect.Value, len(params))
 	for k, param := range params {
@@ -107,14 +115,15 @@ func (p *API) ScanHandler(swagger ISwaggerService, ptr interface{}) {
 		field := types.Field(i)
 		value := values.Field(i)
 		// declare a standard mux handler
-		if len(field.Tag.Get("handler")) > 0 {
-			p.append(ptr, field.Tag.Get("path"), field.Tag.Get("handler"), field.Tag.Get("method"), field.Tag.Get("mime-type"), "", "", map[string]interface{}{}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{})
+		if len(field.Tag.Get("@handler")) > 0 {
+			log.Println("Info:", field.Name, "handler")
+			p.append(ptr, field.Tag.Get("path"), field.Tag.Get("@handler"), field.Tag.Get("method"), field.Tag.Get("mime-type"), "", "", map[string]interface{}{}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{})
 		}
 		// declare a crud handler
 		if len(field.Tag.Get("@crud")) > 0 {
-			assert, conv := ptr.(APIInterface)
+			assert, conv := ptr.(IAPI)
 			if conv {
-				log.Println("Info:", field.Name, " is interface{}")
+				log.Println("Info:", field.Name, "is API")
 				p.append(ptr, field.Tag.Get("@crud"), "HandlerStaticGetAll", "GET", "application/json", "Get all", "Get all resources", map[string]interface{}{}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactories()})
 				p.append(ptr, field.Tag.Get("@crud"), "HandlerStaticPost", "POST", "application/json", "Execute a task or create", "Execute a task on all resources", map[string]interface{}{}, map[string]interface{}{"task": "params"}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()})
 				p.append(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticGetByID", "GET", "application/json", "Get by id", "Get a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()})
@@ -123,21 +132,21 @@ func (p *API) ScanHandler(swagger ISwaggerService, ptr interface{}) {
 				p.append(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticPatchByID", "PATCH", "application/json", "Patch by id", "Patch a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()})
 				p.append(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticPostByID", "POST", "application/json", "Execute a task", "Execute a new task on resource", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"201": assert.GetFactory()})
 			} else {
-				log.Println("Warning:", field.Name, "is not interface{}", reflect.TypeOf(value))
+				log.Println("Warning:", field.Name, "is not API", reflect.TypeOf(value))
 			}
 		}
 		// declare a link handler
 		if len(field.Tag.Get("@link")) > 0 {
-			assert, conv := value.Interface().(APIInterface)
+			assert, conv := value.Interface().(IAPI)
 			if conv {
 				var linkName = field.Tag.Get("@href")
-				log.Println("Info:", field.Name, " is interface{}")
+				log.Println("Info:", field.Name, "is API/HREF")
 				p.append(ptr, field.Tag.Get("@link")+"/:id/"+linkName, "HandlerLinkStaticGetAll", "GET", "application/json", "Get all", "Get all resources", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactories()})
 				p.append(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticGetByID", "GET", "application/json", "Get by id", "Get a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()})
 				p.append(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticPutByID", "PUT", "application/json", "Update by id", "Update a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()})
 				p.append(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticDeleteByID", "DELETE", "application/json", "Delete by id", "Delete a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()})
 			} else {
-				log.Println("Warning:", field.Name, "is not interface{}", reflect.TypeOf(value.Interface()))
+				log.Println("Warning:", field.Name, "is not API/HREF", reflect.TypeOf(value.Interface()))
 			}
 		}
 	}
@@ -210,6 +219,11 @@ func (p *API) PostConstruct(name string) error {
 	return p.Bean.PostConstruct(name)
 }
 
+// Validate this API
+func (p *API) Validate(name string) error {
+	return p.Bean.Validate(name)
+}
+
 // Declare a new interface
 func (p *API) Declare(data APIMethod, intf interface{}) error {
 	// verify type
@@ -271,11 +285,12 @@ func (p *API) HandlerStaticPost() func(c *gin.Context) {
 		c.Header("Content-type", "application/json")
 		body, _ := ioutil.ReadAll(c.Request.Body)
 		if len(c.Query("task")) > 0 {
-			data, err := p.HandlerTasks(c.Query("task"), string(body))
+			data, count, err := p.HandlerTasks(c.Query("task"), string(body))
 			if err != nil {
 				c.String(400, "{\"message\":\"\"}")
 				return
 			}
+			p.XTotalCount(c, count)
 			c.IndentedJSON(202, data)
 		} else {
 			_, ok := c.Request.URL.Query()["filter"]
@@ -301,18 +316,38 @@ func (p *API) HandlerStaticPost() func(c *gin.Context) {
 	return anonymous
 }
 
+// XTotalCount handle X-Total-Count
+func (p *API) XTotalCount(c *gin.Context, count int) {
+	// handle X-total-count
+	if count >= 0 {
+		c.Header("X-total-count", strconv.Itoa(count))
+	}
+}
+
 // HandlerStaticPostByID is the POST handler
 func (p *API) HandlerStaticPostByID() func(c *gin.Context) {
 	anonymous := func(c *gin.Context) {
 		c.Header("Content-type", "application/json")
 		body, _ := ioutil.ReadAll(c.Request.Body)
 		if len(c.Query("task")) > 0 {
-			data, err := p.HandlerTasksByID(c.Param("id"), c.Query("task"), string(body))
-			if err != nil {
-				c.String(400, "{\"message\":\"\"}")
-				return
+			if c.Param("id") == "*" {
+				// id with * is like post on all resources
+				data, count, err := p.HandlerTasks(c.Query("task"), string(body))
+				if err != nil {
+					c.String(400, "{\"message\":\"\"}")
+					return
+				}
+				p.XTotalCount(c, count)
+				c.IndentedJSON(202, data)
+			} else {
+				data, count, err := p.HandlerTasksByID(c.Param("id"), c.Query("task"), string(body))
+				if err != nil {
+					c.String(400, "{\"message\":\"\"}")
+					return
+				}
+				p.XTotalCount(c, count)
+				c.IndentedJSON(202, data)
 			}
-			c.IndentedJSON(202, data)
 		} else {
 			data, err := p.HandlerPost(string(body))
 			if err != nil {
@@ -442,19 +477,9 @@ func (p *API) HandlerPost(body string) (interface{}, error) {
 	return p.GenericPost(body, p.Factory())
 }
 
-// HandlerTasks task handler
-func (p *API) HandlerTasks(name string, body string) (interface{}, error) {
-	return "", nil
-}
-
 // HandlerFilter task handler for filter
 func (p *API) HandlerFilter(body map[string]string) (models.IPersistents, error) {
 	return nil, nil
-}
-
-// HandlerTasksByID return task by id
-func (p *API) HandlerTasksByID(id string, name string, body string) (interface{}, error) {
-	return "", nil
 }
 
 // HandlerPutByID update by id

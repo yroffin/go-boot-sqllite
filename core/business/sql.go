@@ -60,6 +60,17 @@ func (p *SqlCrudBusiness) Init() error {
 	return nil
 }
 
+// Clear this bean
+func (p *SqlCrudBusiness) Clear(excp []string) error {
+	p.Store.Clear(excp)
+	return nil
+}
+
+// Statistics some statistics
+func (p *SqlCrudBusiness) Statistics() ([]stores.IStats, error) {
+	return p.Store.Statistics()
+}
+
 // PostConstruct this bean
 func (p *SqlCrudBusiness) PostConstruct(name string) error {
 	return nil

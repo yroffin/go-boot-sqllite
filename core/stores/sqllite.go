@@ -62,6 +62,39 @@ func (p *Store) Init() error {
 	return nil
 }
 
+// Clear Init this bean
+func (p *Store) Clear(excp []string) error {
+	// truncate all tables
+	for i := 0; i < len(p.Tables); i++ {
+		if p.Tables[i] != excp[0] {
+			// prepare statement
+			statement, _ := p.database.Prepare("DELETE FROM " + p.Tables[i])
+			statement.Exec()
+		}
+	}
+
+	return nil
+}
+
+// Statistics some statistics
+func (p *Store) Statistics() ([]IStats, error) {
+	stats := make([]IStats, 0)
+	// truncate all tables
+	for i := 0; i < len(p.Tables); i++ {
+		// prepare statement
+		rows, _ := p.database.Query("SELECT COUNT (1) FROM " + p.Tables[i])
+		var count string
+		for rows.Next() {
+			rows.Scan(&count)
+		}
+		stat := StoreStats{}
+		stat.Key = p.Tables[i] + ".count"
+		stat.Value = count
+		stats = append(stats, &stat)
+	}
+	return stats, nil
+}
+
 // PostConstruct this bean
 func (p *Store) PostConstruct(name string) error {
 	// Create database

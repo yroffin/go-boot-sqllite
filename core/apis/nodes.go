@@ -46,7 +46,7 @@ type Node struct {
 
 // INode implements IBean
 type INode interface {
-	APIInterface
+	IAPI
 }
 
 // New constructor
@@ -104,4 +104,9 @@ func (p *Node) PostConstruct(name string) error {
 // Validate this API
 func (p *Node) Validate(name string) error {
 	return nil
+}
+
+// HandlerTasksByID return task by id
+func (p *Node) HandlerTasksByID(id string, name string, body string) (interface{}, error) {
+	return "", nil
 }

@@ -60,6 +60,17 @@ func (p *GraphCrudBusiness) Init() error {
 	return nil
 }
 
+// Clear this bean
+func (p *GraphCrudBusiness) Clear() error {
+	p.Store.Clear()
+	return nil
+}
+
+// Statistics some statistics
+func (p *GraphCrudBusiness) Statistics() ([]stores.IStats, error) {
+	return p.Store.Statistics()
+}
+
 // PostConstruct this bean
 func (p *GraphCrudBusiness) PostConstruct(name string) error {
 	return nil

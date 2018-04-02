@@ -25,6 +25,7 @@ package business
 import (
 	core_bean "github.com/yroffin/go-boot-sqllite/core/bean"
 	"github.com/yroffin/go-boot-sqllite/core/models"
+	"github.com/yroffin/go-boot-sqllite/core/stores"
 )
 
 // ICrudBusiness interface
@@ -37,6 +38,8 @@ type ICrudBusiness interface {
 	Update(models.IPersistent) (models.IPersistent, error)
 	Delete(models.IPersistent) (models.IPersistent, error)
 	Patch(models.IPersistent) (models.IPersistent, error)
+	Clear([]string) error
+	Statistics() ([]stores.IStats, error)
 }
 
 // ILinkBusiness interface
@@ -47,4 +50,6 @@ type ILinkBusiness interface {
 	DeleteLink(toCreate models.IEdgeBean) (models.IEdgeBean, error)
 	PatchLink(toPatch models.IEdgeBean) (models.IEdgeBean, error)
 	GetAllLink(id string, toGets []models.IEdgeBean) ([]models.IEdgeBean, error)
+	Clear() error
+	Statistics() ([]stores.IStats, error)
 }

@@ -61,3 +61,9 @@ func (bean *Bean) PostConstruct(string) error {
 	log.Printf("Bean::PostConstruct")
 	return nil
 }
+
+// Validate Init this bean
+func (bean *Bean) Validate(string) error {
+	log.Printf("Bean::Validate")
+	return nil
+}

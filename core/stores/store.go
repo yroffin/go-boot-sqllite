@@ -31,6 +31,28 @@ import (
 	"github.com/yroffin/go-boot-sqllite/core/models"
 )
 
+// IStats stats
+type IStats interface {
+	GetKey() string
+	GetValue() string
+}
+
+// StoreStats statss
+type StoreStats struct {
+	Key   string
+	Value string
+}
+
+// GetKey some statistics
+func (p *StoreStats) GetKey() string {
+	return p.Key
+}
+
+// GetValue some statistics
+func (p *StoreStats) GetValue() string {
+	return p.Value
+}
+
 // IDataStore interface
 type IDataStore interface {
 	core_bean.IBean
@@ -40,6 +62,8 @@ type IDataStore interface {
 	Truncate(entity models.IPersistent) error
 	Get(id string, entity models.IPersistent) error
 	GetAll(entity models.IPersistent, array models.IPersistents) error
+	Clear([]string) error
+	Statistics() ([]IStats, error)
 }
 
 // IGraphStore interface
@@ -50,4 +74,6 @@ type IGraphStore interface {
 	TruncateLink(entity models.IPersistent) error
 	GetLink(entity models.IEdgeBean) error
 	GetAllLink(id string, collection *[]models.IEdgeBean) error
+	Clear() error
+	Statistics() ([]IStats, error)
 }

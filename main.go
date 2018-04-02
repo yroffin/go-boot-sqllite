@@ -31,8 +31,7 @@ import (
 // Main
 func main() {
 	// declare manager and boot it
-	var m = manager.Manager{}
-	m.Init()
+	m := (&manager.Manager{}).New("manager")
 	// Command Line
 	m.CommandLine()
 	// Core beans
@@ -44,5 +43,5 @@ func main() {
 	m.Register("cayley-manager", (&stores.Graph{}).New([]string{"Node"}, "./cayley.db"))
 	// API beans
 	m.Register("node-api", (&apis.Node{}).New())
-	m.Boot("router")
+	m.Boot()
 }

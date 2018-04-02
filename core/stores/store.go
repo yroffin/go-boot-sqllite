@@ -73,7 +73,7 @@ type IGraphStore interface {
 	DeleteLink(entity models.IEdgeBean) error
 	TruncateLink(entity models.IPersistent) error
 	GetLink(entity models.IEdgeBean) error
-	GetAllLink(id string, collection *[]models.IEdgeBean) error
+	GetAllLink(model string, id string, collection *[]models.IEdgeBean) error
 	Clear() error
 	Statistics() ([]IStats, error)
 }

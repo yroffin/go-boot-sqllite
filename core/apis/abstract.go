@@ -85,6 +85,11 @@ type IAPI interface {
 	// Data handled by this API
 	GetFactory() models.IPersistent
 	GetFactories() models.IPersistents
+	// All
+	GetAll() ([]models.IPersistent, error)
+	// Links
+	GetAllLinks(id string) ([]models.IEdgeBean, error)
+	LoadAllLinks(name string, factory func() models.IPersistent) (interface{}, int, error)
 }
 
 // GetFactory return on new bean
@@ -255,7 +260,7 @@ func (p *API) Declare(data APIMethod, intf interface{}) error {
 func (p *API) HandlerStaticGetAll() func(c *gin.Context) {
 	anonymous := func(c *gin.Context) {
 		c.Header("Content-type", "application/json")
-		data, err := p.HandlerGetAll()
+		data, err := p.GetAll()
 		if err != nil {
 			c.String(400, "{\"message\":\"\"}")
 			return
@@ -408,7 +413,7 @@ func (p *API) HandlerStaticPatchByID() func(c *gin.Context) {
 func (p *API) HandlerLinkStaticGetAll() func(c *gin.Context) {
 	anonymous := func(c *gin.Context) {
 		c.Header("Content-type", "application/json")
-		data, err := p.HandlerLinkGetAll(c.Param("id"))
+		data, err := p.GetAllLinks(c.Param("id"))
 		if err != nil {
 			c.String(400, "{\"message\":\"\"}")
 			return
@@ -462,8 +467,8 @@ func (p *API) HandlerLinkStaticDeleteByID() func(c *gin.Context) {
 	return anonymous
 }
 
-// HandlerGetAll get all
-func (p *API) HandlerGetAll() (interface{}, error) {
+// GetAll get all
+func (p *API) GetAll() ([]models.IPersistent, error) {
 	return p.GenericGetAll(p.Factory(), p.Factories())
 }
 
@@ -518,14 +523,14 @@ func (p *API) HandlerLinkDeleteByID(src string, dst string, body string) (interf
 	return p.GenericLinkDeleteByID(toDelete)
 }
 
-// HandlerLinkGetAll get all
-func (p *API) HandlerLinkGetAll(id string) (interface{}, error) {
+// GetAllLinks get all
+func (p *API) GetAllLinks(id string) ([]models.IEdgeBean, error) {
 	link := make([]models.IEdgeBean, 0)
 	return p.GenericLinkGetAll(id, link)
 }
 
 // GenericGetAll default method
-func (p *API) GenericGetAll(toGet models.IPersistent, toGets models.IPersistents) (interface{}, error) {
+func (p *API) GenericGetAll(toGet models.IPersistent, toGets models.IPersistents) ([]models.IPersistent, error) {
 	p.SQLCrudBusiness.GetAll(toGet, toGets)
 	return toGets.Get(), nil
 }
@@ -595,7 +600,26 @@ func (p *API) GenericLinkDeleteByID(assoc models.IEdgeBean) (interface{}, error)
 }
 
 // GenericLinkGetAll default method
-func (p *API) GenericLinkGetAll(id string, links []models.IEdgeBean) (interface{}, error) {
-	bean, _ := p.GraphBusiness.GetAllLink(id, links)
+func (p *API) GenericLinkGetAll(id string, links []models.IEdgeBean) ([]models.IEdgeBean, error) {
+	bean, _ := p.GraphBusiness.GetAllLink(p.Factory().GetName(), id, links)
 	return bean, nil
+}
+
+// LoadAllLinks read all views and all data
+func (p *API) LoadAllLinks(name string, factory func() models.IPersistent) (interface{}, int, error) {
+	// Read all rows
+	all, _ := p.GetAll()
+	for _, element := range all {
+		// Retrieve all links
+		targets := make([]models.IPersistent, 0)
+		edges, _ := p.GetAllLinks(element.GetID())
+		for _, edge := range edges {
+			bean := factory()
+			bean.SetID(edge.GetTargetID())
+			p.SQLCrudBusiness.Get(bean)
+			targets = append(targets, bean)
+		}
+		element.(models.IValueSetter).Set(name, targets)
+	}
+	return all, len(all), nil
 }

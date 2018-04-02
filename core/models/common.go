@@ -33,9 +33,14 @@ type ValueBean struct {
 	Extended map[string]interface{} `json:"extended"`
 }
 
+// IValueSetter interface
+type IValueSetter interface {
+	Set(string, interface{})
+}
+
 // IValueBean simple interface
 type IValueBean interface {
-	Set(string, interface{})
+	IValueSetter
 	SetString(string, string)
 	GetAsString(string) string
 	GetAsStringArray(string) []string

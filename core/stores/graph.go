@@ -168,8 +168,8 @@ func (p *Graph) GetLink(entity models.IEdgeBean) error {
 }
 
 // GetAllLink this persistent bean
-func (p *Graph) GetAllLink(id string, array *[]models.IEdgeBean) error {
-	var query = `g.V().As('source').Out(null, 'edge').As('target').Labels().As('label').All()`
+func (p *Graph) GetAllLink(model string, id string, array *[]models.IEdgeBean) error {
+	var query = `g.V('/` + model + `/` + id + `').As('source').Out(null, 'edge').As('target').Labels().As('label').All()`
 	results, _ := p.QueryGizmo(query, "")
 	for _, v := range results {
 		if id == v.GetSourceID() {

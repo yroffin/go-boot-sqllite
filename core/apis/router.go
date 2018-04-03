@@ -56,7 +56,7 @@ type IRouter interface {
 	// HandleFunc
 	HandleFunc(path string, f func(c *gin.Context), method string, content string)
 	// HandleFunc
-	HandleFuncLink(path string, f func(c *gin.Context, target string), method string, content string, target string)
+	HandleFuncLink(path string, f func(c *gin.Context, target IAPI), method string, content string, target IAPI)
 	// HandleFuncString declare a string handler
 	HandleFuncString(path string, f func() (string, error), method string, content string)
 	// HandleFuncStringWithId declare a string handler
@@ -139,7 +139,7 @@ func (p *Router) HandleFunc(path string, f func(c *gin.Context), method string, 
 }
 
 // HandleFuncLink declare a handler
-func (p *Router) HandleFuncLink(path string, f func(c *gin.Context, target string), method string, content string, target string) {
+func (p *Router) HandleFuncLink(path string, f func(c *gin.Context, target IAPI), method string, content string, target IAPI) {
 	log.Printf("Router::HandleFunc '%s' with method '%s' with type mime '%s'", path, method, content)
 	// declare it to the router
 	p.Engine.Handle(method, path, p.HandlerStaticLink(f, content, target))
@@ -229,7 +229,7 @@ func (p *Router) HandlerStatic(method func(c *gin.Context), content string) func
 }
 
 // HandlerStaticLink render static handler
-func (p *Router) HandlerStaticLink(method func(c *gin.Context, target string), content string, target string) func(c *gin.Context) {
+func (p *Router) HandlerStaticLink(method func(c *gin.Context, target IAPI), content string, target IAPI) func(c *gin.Context) {
 	anonymous := func(c *gin.Context) {
 		// security header
 		c.Header("Strict-Transport-Security", "")

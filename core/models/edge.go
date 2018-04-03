@@ -63,6 +63,7 @@ type IEdgeBean interface {
 	GetLink() string
 	SetInstance(string)
 	GetInstance() string
+	GetExtend() map[string]interface{}
 }
 
 // New constructor
@@ -81,6 +82,11 @@ func (p *EdgeBean) New(source string, sourceID string, target string, targetID s
 // SetInstance set instance
 func (p *EdgeBean) SetInstance(instance string) {
 	p.Instance = instance
+}
+
+// GetExtend get extended
+func (p *EdgeBean) GetExtend() map[string]interface{} {
+	return p.Extended
 }
 
 // GetInstance get instance
@@ -135,6 +141,10 @@ func (p *EdgeBean) SetID(ID string) {
 
 // Set get set name
 func (p *EdgeBean) Set(key string, value interface{}) {
+}
+
+// Extend vars
+func (p *EdgeBean) Extend(map[string]interface{}) {
 }
 
 // SetString get set name

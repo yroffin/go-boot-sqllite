@@ -60,7 +60,7 @@ type APIMethod struct {
 	path    string
 	handler string
 	method  string
-	target  string
+	target  IAPI
 	// mime type
 	typeMime string
 	addr     reflect.Value
@@ -89,8 +89,8 @@ type IAPI interface {
 	// All
 	GetAll() ([]models.IPersistent, error)
 	// Links
-	GetAllLinks(id string, targetType string) ([]models.IEdgeBean, error)
-	LoadAllLinks(name string, factory func() models.IPersistent, targetType string) (interface{}, int, error)
+	GetAllLinks(id string, targetType IAPI) ([]models.IPersistent, error)
+	LoadAllLinks(name string, factory func() models.IPersistent, targetType IAPI) (interface{}, int, error)
 }
 
 // GetFactory return on new bean
@@ -123,20 +123,20 @@ func (p *API) ScanHandler(swagger ISwaggerService, ptr interface{}) {
 		// declare a standard mux handler
 		if len(field.Tag.Get("@handler")) > 0 {
 			log.Println("Info:", field.Name, "handler")
-			p.append(ptr, field.Tag.Get("path"), field.Tag.Get("@handler"), field.Tag.Get("method"), field.Tag.Get("mime-type"), "", "", map[string]interface{}{}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{}, "")
+			p.add(ptr, field.Tag.Get("path"), field.Tag.Get("@handler"), field.Tag.Get("method"), field.Tag.Get("mime-type"), "", "", map[string]interface{}{}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{})
 		}
 		// declare a crud handler
 		if len(field.Tag.Get("@crud")) > 0 {
 			assert, conv := ptr.(IAPI)
 			if conv {
 				log.Println("Info:", field.Name, "is API")
-				p.append(ptr, field.Tag.Get("@crud"), "HandlerStaticGetAll", "GET", "application/json", "Get all", "Get all resources", map[string]interface{}{}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactories()}, "")
-				p.append(ptr, field.Tag.Get("@crud"), "HandlerStaticPost", "POST", "application/json", "Execute a task or create", "Execute a task on all resources", map[string]interface{}{}, map[string]interface{}{"task": "params"}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()}, "")
-				p.append(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticGetByID", "GET", "application/json", "Get by id", "Get a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()}, "")
-				p.append(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticPutByID", "PUT", "application/json", "Update by id", "Update a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()}, "")
-				p.append(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticDeleteByID", "DELETE", "application/json", "Delete by id", "Delete a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()}, "")
-				p.append(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticPatchByID", "PATCH", "application/json", "Patch by id", "Patch a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()}, "")
-				p.append(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticPostByID", "POST", "application/json", "Execute a task", "Execute a new task on resource", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"201": assert.GetFactory()}, "")
+				p.add(ptr, field.Tag.Get("@crud"), "HandlerStaticGetAll", "GET", "application/json", "Get all", "Get all resources", map[string]interface{}{}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactories()})
+				p.add(ptr, field.Tag.Get("@crud"), "HandlerStaticPost", "POST", "application/json", "Execute a task or create", "Execute a task on all resources", map[string]interface{}{}, map[string]interface{}{"task": "params"}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()})
+				p.add(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticGetByID", "GET", "application/json", "Get by id", "Get a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()})
+				p.add(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticPutByID", "PUT", "application/json", "Update by id", "Update a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()})
+				p.add(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticDeleteByID", "DELETE", "application/json", "Delete by id", "Delete a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()})
+				p.add(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticPatchByID", "PATCH", "application/json", "Patch by id", "Patch a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()})
+				p.add(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticPostByID", "POST", "application/json", "Execute a task", "Execute a new task on resource", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"201": assert.GetFactory()})
 			} else {
 				log.Println("Warning:", field.Name, "is not API", reflect.TypeOf(value))
 			}
@@ -147,11 +147,11 @@ func (p *API) ScanHandler(swagger ISwaggerService, ptr interface{}) {
 			if conv {
 				var linkName = field.Tag.Get("@href")
 				log.Println("Info:", field.Name, "is API/HREF", assert.GetName())
-				p.append(ptr, field.Tag.Get("@link")+"/:id/"+linkName, "HandlerLinkStaticGetAll", "GET", "application/json", "Get all", "Get all resources", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactories()}, assert.GetName())
-				p.append(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticGetByID", "GET", "application/json", "Get by id", "Get a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()}, assert.GetName())
-				p.append(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticPutByID", "POST", "application/json", "Update by id", "Update a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()}, assert.GetName())
-				p.append(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticPutByID", "PUT", "application/json", "Update by id", "Update a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()}, assert.GetName())
-				p.append(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticDeleteByID", "DELETE", "application/json", "Delete by id", "Delete a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()}, assert.GetName())
+				p.addLink(ptr, field.Tag.Get("@link")+"/:id/"+linkName, "HandlerLinkStaticGetAll", "GET", "application/json", "Get all", "Get all resources", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactories()}, assert)
+				p.addLink(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticGetByID", "GET", "application/json", "Get by id", "Get a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()}, assert)
+				p.addLink(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticPutByID", "POST", "application/json", "Update by id", "Update a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()}, assert)
+				p.addLink(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticPutByID", "PUT", "application/json", "Update by id", "Update a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()}, assert)
+				p.addLink(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticDeleteByID", "DELETE", "application/json", "Delete by id", "Delete a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()}, assert)
 			} else {
 				log.Println("Warning:", field.Name, "is not API/HREF", reflect.TypeOf(value.Interface()))
 			}
@@ -168,7 +168,18 @@ func (p *API) ScanHandler(swagger ISwaggerService, ptr interface{}) {
 }
 
 // Init initialize the API
-func (p *API) append(ptr interface{}, path string, handler string, method string, mime string, sum string, desc string, args map[string]interface{}, query map[string]interface{}, in []interface{}, out map[string]interface{}, target string) {
+func (p *API) add(ptr interface{}, path string, handler string, method string, mime string, sum string, desc string, args map[string]interface{}, query map[string]interface{}, in []interface{}, out map[string]interface{}) {
+	addr := reflect.ValueOf(ptr).MethodByName(handler)
+	if !addr.IsValid() || addr.IsNil() {
+		log.Fatalf("Unable to find any method called '%v'", handler)
+	} else {
+		log.Printf("Successfully mounted method called '%v' on path '%s' with method '%s' - '%s'", handler, path, method, mime)
+	}
+	p.methods = append(p.methods, APIMethod{path: path, handler: handler, method: method, addr: addr, typeMime: mime, summary: sum, desc: desc, args: args, query: query, in: in, out: out})
+}
+
+// Init initialize the API
+func (p *API) addLink(ptr interface{}, path string, handler string, method string, mime string, sum string, desc string, args map[string]interface{}, query map[string]interface{}, in []interface{}, out map[string]interface{}, target IAPI) {
 	addr := reflect.ValueOf(ptr).MethodByName(handler)
 	if !addr.IsValid() || addr.IsNil() {
 		log.Fatalf("Unable to find any method called '%v'", handler)
@@ -234,7 +245,7 @@ func (p *API) Validate(name string) error {
 // Declare a new interface
 func (p *API) Declare(data APIMethod, intf interface{}) error {
 	// verify type
-	if value, ok := intf.(func(c *gin.Context, target string)); ok {
+	if value, ok := intf.(func(c *gin.Context, target IAPI)); ok {
 		log.Printf("Declare handler() '%s' on '%s' with method '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (p.Router).GetName(), data.typeMime)
 		// declare it to the router
 		(p.Router).HandleFuncLink(data.path, value, data.method, data.typeMime, data.target)
@@ -419,8 +430,8 @@ func (p *API) HandlerStaticPatchByID() func(c *gin.Context) {
 }
 
 // HandlerLinkStaticGetAll is the GET by ID handler
-func (p *API) HandlerLinkStaticGetAll() func(c *gin.Context, targetType string) {
-	anonymous := func(c *gin.Context, targetType string) {
+func (p *API) HandlerLinkStaticGetAll() func(c *gin.Context, targetType IAPI) {
+	anonymous := func(c *gin.Context, targetType IAPI) {
 		c.Header("Content-type", "application/json")
 		data, err := p.GetAllLinks(c.Param("id"), targetType)
 		if err != nil {
@@ -447,8 +458,8 @@ func (p *API) HandlerLinkStaticGetByID() func(c *gin.Context, targetType string)
 }
 
 // HandlerLinkStaticPutByID is the PUT by ID handler
-func (p *API) HandlerLinkStaticPutByID() func(c *gin.Context, targetType string) {
-	anonymous := func(c *gin.Context, targetType string) {
+func (p *API) HandlerLinkStaticPutByID() func(c *gin.Context, targetType IAPI) {
+	anonymous := func(c *gin.Context, targetType IAPI) {
 		c.Header("Content-type", "application/json")
 		body, _ := ioutil.ReadAll(c.Request.Body)
 		data, err := p.HandlerLinkPutByID(c.Param("id"), c.Param("link"), string(body), targetType)
@@ -462,8 +473,8 @@ func (p *API) HandlerLinkStaticPutByID() func(c *gin.Context, targetType string)
 }
 
 // HandlerLinkStaticDeleteByID is the DELETE by ID handler
-func (p *API) HandlerLinkStaticDeleteByID() func(c *gin.Context, targetType string) {
-	anonymous := func(c *gin.Context, targetType string) {
+func (p *API) HandlerLinkStaticDeleteByID() func(c *gin.Context, targetType IAPI) {
+	anonymous := func(c *gin.Context, targetType IAPI) {
 		c.Header("Content-type", "application/json")
 		body, _ := ioutil.ReadAll(c.Request.Body)
 		data, err := p.HandlerLinkDeleteByID(c.Param("id"), c.Param("link"), string(body), targetType, c.Query("instance"))
@@ -512,17 +523,17 @@ func (p *API) HandlerPatchByID(id string, body string) (interface{}, error) {
 }
 
 // HandlerLinkPutByID update by id
-func (p *API) HandlerLinkPutByID(src string, dst string, body string, targetType string) (interface{}, error) {
+func (p *API) HandlerLinkPutByID(src string, dst string, body string, targetType IAPI) (interface{}, error) {
 	source := p.Factory()
 	p.GenericGetByID(src, source)
 	target := p.Factory()
 	p.GenericGetByID(dst, target)
-	toCreate := (&models.EdgeBean{}).New(source.GetName(), source.GetID(), targetType, target.GetID(), "HREF")
+	toCreate := (&models.EdgeBean{}).New(source.GetName(), source.GetID(), targetType.GetName(), target.GetID(), "HREF")
 	return p.GenericLinkPutByID(toCreate)
 }
 
 // HandlerLinkDeleteByID update by id
-func (p *API) HandlerLinkDeleteByID(src string, dst string, body string, targetType string, instance string) (interface{}, error) {
+func (p *API) HandlerLinkDeleteByID(src string, dst string, body string, targetType IAPI, instance string) (interface{}, error) {
 	source := p.Factory()
 	p.GenericGetByID(src, source)
 	target := p.Factory()
@@ -534,9 +545,8 @@ func (p *API) HandlerLinkDeleteByID(src string, dst string, body string, targetT
 }
 
 // GetAllLinks get all
-func (p *API) GetAllLinks(id string, targetType string) ([]models.IEdgeBean, error) {
-	link := make([]models.IEdgeBean, 0)
-	return p.GenericLinkGetAll(id, link, targetType)
+func (p *API) GetAllLinks(id string, targetType IAPI) ([]models.IPersistent, error) {
+	return p.GenericLinkGetAll(id, make([]models.IEdgeBean, 0), targetType)
 }
 
 // GenericGetAll default method
@@ -610,24 +620,36 @@ func (p *API) GenericLinkDeleteByID(assoc models.IEdgeBean) (interface{}, error)
 }
 
 // GenericLinkGetAll default method
-func (p *API) GenericLinkGetAll(id string, links []models.IEdgeBean, targetType string) ([]models.IEdgeBean, error) {
-	bean, _ := p.GraphBusiness.GetAllLink(p.GetFactory().GetName(), id, links, targetType)
-	return bean, nil
+func (p *API) GenericLinkGetAll(id string, links []models.IEdgeBean, targetType IAPI) ([]models.IPersistent, error) {
+	// Retrieve all links
+	edges, _ := p.GraphBusiness.GetAllLink(p.GetFactory().GetName(), id, links, targetType.GetName())
+	// Build output
+	output := make([]models.IPersistent, 0)
+	for _, edge := range edges {
+		// Retrive bean
+		t := targetType.GetFactory()
+		t.SetID(edge.GetTargetID())
+		p.SQLCrudBusiness.Get(t)
+		ex := make(map[string]interface{})
+		ex["instance"] = edge.GetInstance()
+		ex["edge"] = edge
+		t.Extend(edge.GetExtend())
+		t.Extend(ex)
+		output = append(output, t)
+	}
+	return output, nil
 }
 
 // LoadAllLinks read all views and all data
-func (p *API) LoadAllLinks(name string, factory func() models.IPersistent, targetType string) (interface{}, int, error) {
+func (p *API) LoadAllLinks(name string, factory func() models.IPersistent, targetType IAPI) (interface{}, int, error) {
 	// Read all rows
 	all, _ := p.GetAll()
 	for _, element := range all {
 		// Retrieve all links
 		targets := make([]models.IPersistent, 0)
-		edges, _ := p.GetAllLinks(element.GetID(), targetType)
+		edges, _ := p.GenericLinkGetAll(element.GetID(), make([]models.IEdgeBean, 0), targetType)
 		for _, edge := range edges {
-			bean := factory()
-			bean.SetID(edge.GetTargetID())
-			p.SQLCrudBusiness.Get(bean)
-			targets = append(targets, bean)
+			targets = append(targets, edge)
 		}
 		element.(models.IValueSetter).Set(name, targets)
 	}

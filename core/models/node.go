@@ -53,9 +53,16 @@ func (p *NodeBean) New() INodeBean {
 	return &bean
 }
 
-// SetName get set name
+// GetName get set name
 func (p *NodeBean) GetName() string {
-	return "Node"
+	return "NodeBean"
+}
+
+// Extend vars
+func (p *NodeBean) Extend(e map[string]interface{}) {
+	for k, v := range e {
+		p.Extended[k] = v
+	}
 }
 
 // GetType get set name

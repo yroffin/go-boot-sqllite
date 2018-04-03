@@ -55,6 +55,8 @@ type IRouter interface {
 	SwaggerModel() func(*gin.Context)
 	// HandleFunc
 	HandleFunc(path string, f func(c *gin.Context), method string, content string)
+	// HandleFunc
+	HandleFuncLink(path string, f func(c *gin.Context, target string), method string, content string, target string)
 	// HandleFuncString declare a string handler
 	HandleFuncString(path string, f func() (string, error), method string, content string)
 	// HandleFuncStringWithId declare a string handler
@@ -136,6 +138,13 @@ func (p *Router) HandleFunc(path string, f func(c *gin.Context), method string, 
 	p.Engine.Handle(method, path, p.HandlerStatic(f, content))
 }
 
+// HandleFuncLink declare a handler
+func (p *Router) HandleFuncLink(path string, f func(c *gin.Context, target string), method string, content string, target string) {
+	log.Printf("Router::HandleFunc '%s' with method '%s' with type mime '%s'", path, method, content)
+	// declare it to the router
+	p.Engine.Handle(method, path, p.HandlerStaticLink(f, content, target))
+}
+
 // HandleFuncString declare a string handler
 func (p *Router) HandleFuncString(path string, f func() (string, error), method string, content string) {
 	log.Printf("Router::HandleFuncString '%s' with method '%s' with type mime '%s'", path, method, content)
@@ -212,6 +221,24 @@ func (p *Router) HandlerStatic(method func(c *gin.Context), content string) func
 		c.Header("X-Content-Type-Options", "nosniff")
 		c.Header("Referrer-Policy", "same-origin")
 		method(c)
+		if len(content) > 0 {
+			c.Header("Content-Type", content)
+		}
+	}
+	return anonymous
+}
+
+// HandlerStaticLink render static handler
+func (p *Router) HandlerStaticLink(method func(c *gin.Context, target string), content string, target string) func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
+		// security header
+		c.Header("Strict-Transport-Security", "")
+		c.Header("Content-Security-Policy", "")
+		c.Header("X-Frame-Options", "SAMEORIGIN")
+		c.Header("X-XSS-Protection", "1; mode=block")
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("Referrer-Policy", "same-origin")
+		method(c, target)
 		if len(content) > 0 {
 			c.Header("Content-Type", content)
 		}

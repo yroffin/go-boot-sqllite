@@ -44,6 +44,8 @@ type EdgeBean struct {
 	TargetID string `json:"targetId"`
 	// Link
 	Link string `json:"link"`
+	// Instance
+	Instance string `json:"instance"`
 }
 
 // IEdgeBean interface
@@ -59,6 +61,8 @@ type IEdgeBean interface {
 	GetTarget() string
 	GetTargetID() string
 	GetLink() string
+	SetInstance(string)
+	GetInstance() string
 }
 
 // New constructor
@@ -72,6 +76,16 @@ func (p *EdgeBean) New(source string, sourceID string, target string, targetID s
 	bean.TargetID = targetID
 	bean.Link = link
 	return &bean
+}
+
+// SetInstance set instance
+func (p *EdgeBean) SetInstance(instance string) {
+	p.Instance = instance
+}
+
+// GetInstance get instance
+func (p *EdgeBean) GetInstance() string {
+	return p.Instance
 }
 
 // GetSource get source name for this edge

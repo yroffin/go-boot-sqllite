@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strings"
 
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
@@ -133,6 +134,7 @@ func (p *Graph) CreateLink(data models.IEdgeBean) error {
 	// fix UUID
 	uuid, _ := p.uuid()
 	data.SetID(uuid)
+	data.SetInstance(uuid)
 	// insert
 	jsonData, _ := json.Marshal(data)
 	quad := quad.Make("/"+data.GetSource()+"/"+data.GetSourceID(), data.GetLink()+":"+uuid, "/"+data.GetTarget()+"/"+data.GetTargetID(), string(jsonData))
@@ -146,7 +148,7 @@ func (p *Graph) DeleteLink(toDelete models.IEdgeBean) error {
 	it := p.store.QuadsAllIterator()
 	for it.Next(context.Background()) {
 		qu := p.store.Quad(it.Result())
-		if qu.Predicate.Native().(string) == toDelete.GetLink()+":"+toDelete.GetID() {
+		if strings.HasSuffix(qu.Predicate.Native().(string), ":"+toDelete.GetInstance()) {
 			log.Println("Remove:", qu.Subject.Native(), qu.Predicate.Native(), qu.Object.Native())
 			tx := cayley.NewTransaction()
 			tx.RemoveQuad(qu)
@@ -168,7 +170,7 @@ func (p *Graph) GetLink(entity models.IEdgeBean) error {
 }
 
 // GetAllLink this persistent bean
-func (p *Graph) GetAllLink(model string, id string, array *[]models.IEdgeBean) error {
+func (p *Graph) GetAllLink(model string, id string, array *[]models.IEdgeBean, targetType string) error {
 	var query = `g.V('/` + model + `/` + id + `').As('source').Out(null, 'edge').As('target').Labels().As('label').All()`
 	results, _ := p.QueryGizmo(query, "")
 	for _, v := range results {
@@ -200,6 +202,8 @@ func (p *Graph) QueryGizmo(text string, tag string) ([]models.IEdgeBean, error) 
 			// they also stored in native labels
 			data := models.EdgeBean{}
 			json.Unmarshal([]byte(p.store.NameOf(result.Tags["label"]).Native().(string)), &data)
+			// Fix all instance if not clearly initialized
+			data.SetInstance(data.GetID())
 			resultSet = append(resultSet, &data)
 			break
 		default:

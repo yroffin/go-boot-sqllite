@@ -87,8 +87,8 @@ func (p *GraphCrudBusiness) CreateLink(toCreate models.IEdgeBean) (models.IEdgeB
 }
 
 // GetAllLink retrieve this bean by its id
-func (p *GraphCrudBusiness) GetAllLink(model string, id string, toGets []models.IEdgeBean) ([]models.IEdgeBean, error) {
-	p.Store.GetAllLink(model, id, &toGets)
+func (p *GraphCrudBusiness) GetAllLink(model string, id string, toGets []models.IEdgeBean, targetType string) ([]models.IEdgeBean, error) {
+	p.Store.GetAllLink(model, id, &toGets, targetType)
 	return toGets, nil
 }
 

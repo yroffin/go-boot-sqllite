@@ -91,6 +91,9 @@ func (p *EdgeBean) SetInstance(instance string) {
 
 // GetExtend get extended
 func (p *EdgeBean) GetExtend() map[string]interface{} {
+	if p.Extended == nil {
+		p.Extended = make(map[string]interface{})
+	}
 	return p.Extended
 }
 

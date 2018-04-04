@@ -66,13 +66,18 @@ func (p *ValueBean) ToString() string {
 }
 
 // ToJSON return o json formated value (in pretty format)
-func (p *ValueBean) ToJSON() string {
-	payload, err := json.MarshalIndent(p.Extended, "", "\t")
+func ToJSON(p interface{}) string {
+	payload, err := json.MarshalIndent(p, "", "\t")
 	if err != nil {
 		log.Println("Unable to marshal:", err)
 		return "{}"
 	}
 	return string(payload)
+}
+
+// ToJSON return o json formated value (in pretty format)
+func (p *ValueBean) ToJSON() string {
+	return ToJSON(p.Extended)
 }
 
 // Set a value for a key

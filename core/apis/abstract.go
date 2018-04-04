@@ -541,8 +541,9 @@ func (p *API) HandlerPatchByID(id string, body string) (interface{}, error) {
 func (p *API) HandlerLinkPostByID(src string, dst string, body string, targetType IAPI) (models.IPersistent, error) {
 	source := p.Factory()
 	p.GenericGetByID(src, source)
-	target := p.Factory()
+	target := targetType.GetFactory()
 	p.GenericGetByID(dst, target)
+	log.Println("output", target)
 	toCreate := (&models.EdgeBean{}).New(source.GetName(), source.GetID(), targetType.GetName(), target.GetID(), "HREF")
 	// add edge extended data
 	var ext = make(map[string]interface{})
@@ -560,7 +561,7 @@ func (p *API) HandlerLinkPostByID(src string, dst string, body string, targetTyp
 func (p *API) HandlerLinkPutByID(src string, dst string, body string, targetType IAPI, instance string) (models.IPersistent, error) {
 	source := p.Factory()
 	p.GenericGetByID(src, source)
-	target := p.Factory()
+	target := targetType.GetFactory()
 	p.GenericGetByID(dst, target)
 	toUpdate := (&models.EdgeBean{}).New(source.GetName(), source.GetID(), targetType.GetName(), target.GetID(), "HREF")
 	// add edge extended data, edge and instance are reserved keyword

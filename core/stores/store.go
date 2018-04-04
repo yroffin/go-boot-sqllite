@@ -70,6 +70,7 @@ type IDataStore interface {
 type IGraphStore interface {
 	core_bean.IBean
 	CreateLink(data models.IEdgeBean) error
+	UpdateLink(data models.IEdgeBean) error
 	DeleteLink(entity models.IEdgeBean) error
 	TruncateLink(entity models.IPersistent) error
 	GetLink(entity models.IEdgeBean) error

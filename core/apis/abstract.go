@@ -149,7 +149,7 @@ func (p *API) ScanHandler(swagger ISwaggerService, ptr interface{}) {
 				log.Println("Info:", field.Name, "is API/HREF", assert.GetName())
 				p.addLink(ptr, field.Tag.Get("@link")+"/:id/"+linkName, "HandlerLinkStaticGetAll", "GET", "application/json", "Get all", "Get all resources", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactories()}, assert)
 				p.addLink(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticGetByID", "GET", "application/json", "Get by id", "Get a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()}, assert)
-				p.addLink(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticPutByID", "POST", "application/json", "Update by id", "Update a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()}, assert)
+				p.addLink(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticPostByID", "POST", "application/json", "Update by id", "Update a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()}, assert)
 				p.addLink(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticPutByID", "PUT", "application/json", "Update by id", "Update a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()}, assert)
 				p.addLink(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticDeleteByID", "DELETE", "application/json", "Delete by id", "Delete a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()}, assert)
 			} else {
@@ -457,12 +457,27 @@ func (p *API) HandlerLinkStaticGetByID() func(c *gin.Context, targetType string)
 	return anonymous
 }
 
+// HandlerLinkStaticPostByID is the PUT by ID handler
+func (p *API) HandlerLinkStaticPostByID() func(c *gin.Context, targetType IAPI) {
+	anonymous := func(c *gin.Context, targetType IAPI) {
+		c.Header("Content-type", "application/json")
+		body, _ := ioutil.ReadAll(c.Request.Body)
+		data, err := p.HandlerLinkPostByID(c.Param("id"), c.Param("link"), string(body), targetType)
+		if err != nil {
+			c.String(400, "{\"message\":\"\"}")
+			return
+		}
+		c.IndentedJSON(200, data)
+	}
+	return anonymous
+}
+
 // HandlerLinkStaticPutByID is the PUT by ID handler
 func (p *API) HandlerLinkStaticPutByID() func(c *gin.Context, targetType IAPI) {
 	anonymous := func(c *gin.Context, targetType IAPI) {
 		c.Header("Content-type", "application/json")
 		body, _ := ioutil.ReadAll(c.Request.Body)
-		data, err := p.HandlerLinkPutByID(c.Param("id"), c.Param("link"), string(body), targetType)
+		data, err := p.HandlerLinkPutByID(c.Param("id"), c.Param("link"), string(body), targetType, c.Query("instance"))
 		if err != nil {
 			c.String(400, "{\"message\":\"\"}")
 			return
@@ -522,14 +537,43 @@ func (p *API) HandlerPatchByID(id string, body string) (interface{}, error) {
 	return p.GenericPatchByID(id, body, p.Factory())
 }
 
-// HandlerLinkPutByID update by id
-func (p *API) HandlerLinkPutByID(src string, dst string, body string, targetType IAPI) (interface{}, error) {
+// HandlerLinkPostByID update by id
+func (p *API) HandlerLinkPostByID(src string, dst string, body string, targetType IAPI) (models.IPersistent, error) {
 	source := p.Factory()
 	p.GenericGetByID(src, source)
 	target := p.Factory()
 	p.GenericGetByID(dst, target)
 	toCreate := (&models.EdgeBean{}).New(source.GetName(), source.GetID(), targetType.GetName(), target.GetID(), "HREF")
-	return p.GenericLinkPutByID(toCreate)
+	// add edge extended data
+	var ext = make(map[string]interface{})
+	json.Unmarshal([]byte(body), &ext)
+	toCreate.Extend(ext)
+	_, err := p.GenericLinkPostByID(toCreate)
+	// edge is reserved keyword
+	delete(ext, "edge")
+	ext["instance"] = toCreate.GetID()
+	target.Extend(ext)
+	return target, err
+}
+
+// HandlerLinkPutByID update by id
+func (p *API) HandlerLinkPutByID(src string, dst string, body string, targetType IAPI, instance string) (models.IPersistent, error) {
+	source := p.Factory()
+	p.GenericGetByID(src, source)
+	target := p.Factory()
+	p.GenericGetByID(dst, target)
+	toUpdate := (&models.EdgeBean{}).New(source.GetName(), source.GetID(), targetType.GetName(), target.GetID(), "HREF")
+	// add edge extended data, edge and instance are reserved keyword
+	var ext = make(map[string]interface{})
+	json.Unmarshal([]byte(body), &ext)
+	toUpdate.Extend(ext)
+	toUpdate.SetInstance(instance)
+	_, err := p.GenericLinkPutByID(toUpdate)
+	// edge is reserved keyword
+	delete(ext, "edge")
+	target.Extend(ext)
+	ext["instance"] = toUpdate.GetID()
+	return target, err
 }
 
 // HandlerLinkDeleteByID update by id
@@ -608,8 +652,14 @@ func (p *API) GenericDeleteByID(id string, toDelete models.IPersistent) (interfa
 }
 
 // GenericLinkPutByID default method
-func (p *API) GenericLinkPutByID(assoc models.IEdgeBean) (interface{}, error) {
+func (p *API) GenericLinkPostByID(assoc models.IEdgeBean) (interface{}, error) {
 	bean, _ := p.GraphBusiness.CreateLink(assoc)
+	return bean, nil
+}
+
+// GenericLinkPutByID default method
+func (p *API) GenericLinkPutByID(assoc models.IEdgeBean) (interface{}, error) {
+	bean, _ := p.GraphBusiness.UpdateLink(assoc)
 	return bean, nil
 }
 
@@ -628,14 +678,17 @@ func (p *API) GenericLinkGetAll(id string, links []models.IEdgeBean, targetType 
 	for _, edge := range edges {
 		// Retrive bean
 		t := targetType.GetFactory()
-		t.SetID(edge.GetTargetID())
-		p.SQLCrudBusiness.Get(t)
-		ex := make(map[string]interface{})
-		ex["instance"] = edge.GetInstance()
-		ex["edge"] = edge
-		t.Extend(edge.GetExtend())
-		t.Extend(ex)
-		output = append(output, t)
+		// Filter by type
+		if edge.GetTarget() == t.GetName() {
+			t.SetID(edge.GetTargetID())
+			p.SQLCrudBusiness.Get(t)
+			ex := make(map[string]interface{})
+			ex["instance"] = edge.GetInstance()
+			ex["edge"] = edge
+			t.Extend(edge.GetExtend())
+			t.Extend(ex)
+			output = append(output, t)
+		}
 	}
 	return output, nil
 }

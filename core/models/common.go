@@ -67,7 +67,7 @@ func (p *ValueBean) ToString() string {
 
 // ToJSON return o json formated value (in pretty format)
 func (p *ValueBean) ToJSON() string {
-	payload, err := json.MarshalIndent(p.Extended, "\t", "\t")
+	payload, err := json.MarshalIndent(p.Extended, "", "\t")
 	if err != nil {
 		log.Println("Unable to marshal:", err)
 		return "{}"

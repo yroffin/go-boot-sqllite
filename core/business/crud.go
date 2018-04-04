@@ -47,6 +47,7 @@ type ILinkBusiness interface {
 	core_bean.IBean
 	// Linked ones
 	CreateLink(toCreate models.IEdgeBean) (models.IEdgeBean, error)
+	UpdateLink(toUpdate models.IEdgeBean) (models.IEdgeBean, error)
 	DeleteLink(toCreate models.IEdgeBean) (models.IEdgeBean, error)
 	PatchLink(toPatch models.IEdgeBean) (models.IEdgeBean, error)
 	GetAllLink(model string, id string, toGets []models.IEdgeBean, targetType string) ([]models.IEdgeBean, error)

@@ -143,6 +143,29 @@ func (p *Graph) CreateLink(data models.IEdgeBean) error {
 	return nil
 }
 
+// UpdateLink in graph db
+func (p *Graph) UpdateLink(data models.IEdgeBean) error {
+	// find existing link and remove it
+	var query = `g.V('/` + data.GetSource() + `/` + data.GetSourceID() + `').As('source').Out(null, 'edge').As('target').Labels().As('label').All()`
+	results, _ := p.QueryGizmo(query, "")
+	for _, v := range results {
+		if v.GetInstance() == data.GetInstance() {
+			p.DeleteLink(data)
+		}
+	}
+
+	// fix UUID
+	uuid, _ := p.uuid()
+	data.SetID(uuid)
+	data.SetInstance(uuid)
+	// insert
+	jsonData, _ := json.Marshal(data)
+	quad := quad.Make("/"+data.GetSource()+"/"+data.GetSourceID(), data.GetLink()+":"+uuid, "/"+data.GetTarget()+"/"+data.GetTargetID(), string(jsonData))
+	log.Println("Update:", quad, string(jsonData))
+	p.store.AddQuad(quad)
+	return nil
+}
+
 // DeleteLink this persistent bean
 func (p *Graph) DeleteLink(toDelete models.IEdgeBean) error {
 	it := p.store.QuadsAllIterator()

@@ -22,6 +22,11 @@
 // SOFTWARE.
 package models
 
+import (
+	"encoding/json"
+	"log"
+)
+
 // EdgeBean simple command model
 type EdgeBean struct {
 	// Id
@@ -144,7 +149,17 @@ func (p *EdgeBean) Set(key string, value interface{}) {
 }
 
 // Extend vars
-func (p *EdgeBean) Extend(map[string]interface{}) {
+func (p *EdgeBean) Extend(e map[string]interface{}) {
+	// edge and instance are reserved
+	for k, v := range e {
+		switch k {
+		case "edge":
+		case "instance":
+			break
+		default:
+			p.Extended[k] = v
+		}
+	}
 }
 
 // SetString get set name
@@ -176,8 +191,12 @@ func (p *EdgeBean) ToString() string {
 
 // ToJSON stringify this commnd
 func (p *EdgeBean) ToJSON() string {
-	// Call super method
-	return IValueBean(p).ToJSON()
+	payload, err := json.MarshalIndent(p, "", "\t")
+	if err != nil {
+		log.Println("Unable to marshal:", err)
+		return "{}"
+	}
+	return string(payload)
 }
 
 // SetTimestamp set timestamp

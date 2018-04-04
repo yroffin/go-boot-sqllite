@@ -53,4 +53,5 @@ type ILinkBusiness interface {
 	GetAllLink(model string, id string, toGets []models.IEdgeBean, targetType string) ([]models.IEdgeBean, error)
 	Clear() error
 	Statistics() ([]stores.IStats, error)
+	Export() (map[string][]map[string]interface{}, error)
 }

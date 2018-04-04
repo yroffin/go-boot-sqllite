@@ -617,6 +617,7 @@ func (p *API) GetByID(id string, toGet models.IPersistent) error {
 func (p *API) GenericPost(body string, toCreate models.IPersistent) (interface{}, error) {
 	var bin = []byte(body)
 	result := json.Unmarshal(bin, &toCreate)
+	log.Println("JSON", body, models.ToJSON(toCreate))
 	// check unmashal errors
 	if result != nil {
 		log.Printf("Error, while Unmarshaling body %v - %v", body, result)

@@ -71,6 +71,11 @@ func (p *GraphCrudBusiness) Statistics() ([]stores.IStats, error) {
 	return p.Store.Statistics()
 }
 
+// Export some values
+func (p *GraphCrudBusiness) Export() (map[string][]map[string]interface{}, error) {
+	return p.Store.Export()
+}
+
 // PostConstruct this bean
 func (p *GraphCrudBusiness) PostConstruct(name string) error {
 	return nil

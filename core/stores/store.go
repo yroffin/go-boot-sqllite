@@ -77,4 +77,5 @@ type IGraphStore interface {
 	GetAllLink(model string, id string, collection *[]models.IEdgeBean, targetType string) error
 	Clear() error
 	Statistics() ([]IStats, error)
+	Export() (map[string][]map[string]interface{}, error)
 }

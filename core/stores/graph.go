@@ -114,6 +114,34 @@ func (p *Graph) Statistics() ([]IStats, error) {
 	return stats, nil
 }
 
+// Export some statistics
+func (p *Graph) Export() (map[string][]map[string]interface{}, error) {
+	stats := make(map[string][]map[string]interface{})
+	it := p.store.QuadsAllIterator()
+	for it.Next(context.Background()) {
+		qu := p.store.Quad(it.Result())
+		stat := StoreStats{}
+		stat.Key = qu.Subject.Native().(string)
+		stat.Value = qu.Predicate.Native().(string) + " " + qu.Object.Native().(string) + " " + qu.Label.Native().(string)
+		var href = strings.Split(qu.Predicate.Native().(string), ":")[0]
+		var hrefId = strings.Split(qu.Predicate.Native().(string), ":")[1]
+		if _, ok := stats[href]; !ok {
+			stats[href] = make([]map[string]interface{}, 0)
+		}
+		element := make(map[string]interface{})
+		element["__from"] = strings.Split(qu.Subject.Native().(string), "/")[2]
+		element["__to"] = strings.Split(qu.Object.Native().(string), "/")[2]
+		m := make(map[string]interface{})
+		json.Unmarshal([]byte(qu.Label.Native().(string)), &m)
+		element["id"] = hrefId
+		for k, v := range m["extended"].(map[string]interface{}) {
+			element[k] = v
+		}
+		stats[href] = append(stats[href], element)
+	}
+	return stats, nil
+}
+
 // uuid generates a random UUID according to RFC 4122
 func (p *Graph) uuid() (string, error) {
 	uuid := make([]byte, 16)

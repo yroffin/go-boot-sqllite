@@ -1,4 +1,4 @@
-// Package stores for all sgbd operation
+// Package business for business interface
 // MIT License
 //
 // Copyright (c) 2017 yroffin
@@ -20,61 +20,35 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-package stores
+package engine
 
 import (
-
-	// for import driver
-	_ "github.com/mattn/go-sqlite3"
-
-	core_bean "github.com/yroffin/go-boot-sqllite/core/bean"
 	"github.com/yroffin/go-boot-sqllite/core/models"
 )
 
-// IStats stats
-type IStats interface {
-	GetKey() string
-	GetValue() string
-}
-
-// StoreStats statss
-type StoreStats struct {
-	Key   string
-	Value string
-}
-
-// GetKey some statistics
-func (p *StoreStats) GetKey() string {
-	return p.Key
-}
-
-// GetValue some statistics
-func (p *StoreStats) GetValue() string {
-	return p.Value
-}
-
-// IDataStore interface
-type IDataStore interface {
-	core_bean.IBean
-	Create(entity models.IPersistent) error
-	Update(id string, entity models.IPersistent) error
-	Delete(id string, entity models.IPersistent) error
-	Truncate(entity models.IPersistent) error
-	Get(id string, entity models.IPersistent) error
-	GetAll(entity models.IPersistent, array models.IPersistents) error
+// ICrudBusiness interface
+type ICrudBusiness interface {
+	IBean
+	// Relationnal data
+	GetAll(models.IPersistent, models.IPersistents) (models.IPersistents, error)
+	Get(models.IPersistent) (models.IPersistent, error)
+	Create(models.IPersistent) (models.IPersistent, error)
+	Update(models.IPersistent) (models.IPersistent, error)
+	Delete(models.IPersistent) (models.IPersistent, error)
+	Patch(models.IPersistent) (models.IPersistent, error)
 	Clear([]string) error
 	Statistics() ([]IStats, error)
 }
 
-// IGraphStore interface
-type IGraphStore interface {
-	core_bean.IBean
-	CreateLink(data models.IEdgeBean) error
-	UpdateLink(data models.IEdgeBean) error
-	DeleteLink(entity models.IEdgeBean) error
-	TruncateLink(entity models.IPersistent) error
-	GetLink(entity models.IEdgeBean) error
-	GetAllLink(model string, id string, collection *[]models.IEdgeBean, targetType string) error
+// ILinkBusiness interface
+type ILinkBusiness interface {
+	IBean
+	// Linked ones
+	CreateLink(toCreate models.IEdgeBean) (models.IEdgeBean, error)
+	UpdateLink(toUpdate models.IEdgeBean) (models.IEdgeBean, error)
+	DeleteLink(toCreate models.IEdgeBean) (models.IEdgeBean, error)
+	PatchLink(toPatch models.IEdgeBean) (models.IEdgeBean, error)
+	GetAllLink(model string, id string, toGets []models.IEdgeBean, targetType string) ([]models.IEdgeBean, error)
 	Clear() error
 	Statistics() ([]IStats, error)
 	Export() (map[string][]map[string]interface{}, error)

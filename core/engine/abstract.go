@@ -20,7 +20,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-package apis
+package engine
 
 import (
 	"encoding/json"
@@ -32,22 +32,32 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/yroffin/go-boot-sqllite/core/bean"
-	"github.com/yroffin/go-boot-sqllite/core/business"
 	"github.com/yroffin/go-boot-sqllite/core/models"
 )
 
+var (
+	// Fix tables names
+	Tables = []string{"Node"}
+)
+
+func init() {
+	Winter.Register("graph-crud-business", (&GraphCrudBusiness{}).New())
+	Winter.Register("sql-crud-business", (&SqlCrudBusiness{}).New())
+	Winter.Register("cayley-manager", (&Graph{}).New("./cayley.db"))
+	Winter.Register("sqllite-manager", (&Store{}).New("./sqllite.db"))
+}
+
 // API base class
 type API struct {
-	*bean.Bean
+	*Bean
 	// all mthods to declare
 	methods []APIMethod
 	// Router with injection mecanism
 	Router IRouter `@autowired:"router"`
 	// SqlCrudBusiness with injection mecanism
-	SQLCrudBusiness business.ICrudBusiness `@autowired:"sql-crud-business"`
+	SQLCrudBusiness ICrudBusiness `@autowired:"sql-crud-business"`
 	// GraphBusiness with injection mecanism
-	GraphBusiness business.ILinkBusiness `@autowired:"graph-crud-business"`
+	GraphBusiness ILinkBusiness `@autowired:"graph-crud-business"`
 	// Factory
 	Factory          func() models.IPersistent
 	Factories        func() models.IPersistents
@@ -81,7 +91,7 @@ type CrudHandler interface {
 
 // IAPI all package methods
 type IAPI interface {
-	bean.IBean
+	IBean
 	Declare(APIMethod, interface{}) error
 	// Data handled by this API
 	GetFactory() models.IPersistent
@@ -95,12 +105,18 @@ type IAPI interface {
 
 // GetFactory return on new bean
 func (p *API) GetFactory() models.IPersistent {
-	return p.Factory()
+	if p.Factory != nil {
+		return p.Factory()
+	}
+	return nil
 }
 
 // GetFactories return a bean list
 func (p *API) GetFactories() models.IPersistents {
-	return p.Factories()
+	if p.Factories != nil {
+		return p.Factories()
+	}
+	return nil
 }
 
 // Call params
@@ -191,7 +207,7 @@ func (p *API) addLink(ptr interface{}, path string, handler string, method strin
 
 // SetSQLCrudBusiness inject CrudBusiness
 func (p *API) SetSQLCrudBusiness(value interface{}) {
-	if assertion, ok := value.(business.ICrudBusiness); ok {
+	if assertion, ok := value.(ICrudBusiness); ok {
 		p.SQLCrudBusiness = assertion
 	} else {
 		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
@@ -200,7 +216,7 @@ func (p *API) SetSQLCrudBusiness(value interface{}) {
 
 // SetGraphBusiness inject CrudBusiness
 func (p *API) SetGraphBusiness(value interface{}) {
-	if assertion, ok := value.(business.ILinkBusiness); ok {
+	if assertion, ok := value.(ILinkBusiness); ok {
 		p.GraphBusiness = assertion
 	} else {
 		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))

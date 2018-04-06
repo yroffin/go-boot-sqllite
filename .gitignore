@@ -16,3 +16,4 @@ vendor
 gin-bin
 go-boot-sqllite
 *.db
+sqllite.db

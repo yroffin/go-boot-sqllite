@@ -20,7 +20,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-package manager
+package engine
 
 import (
 	"flag"
@@ -30,16 +30,17 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+)
 
-	"github.com/yroffin/go-boot-sqllite/core/apis"
-	"github.com/yroffin/go-boot-sqllite/core/bean"
-	core_services "github.com/yroffin/go-boot-sqllite/core/services"
+var (
+	// Winter manage beans
+	Winter = (&Manager{}).New("manager")
 )
 
 // Manager interface
 type Manager struct {
 	// members
-	*core_services.SERVICE
+	*SERVICE
 	// Bean registry
 	ArrayOfBeans     []interface{}
 	ArrayOfBeanNames []string
@@ -52,23 +53,24 @@ type Manager struct {
 	// Properties
 	phttps *int
 	// Inject
-	Router apis.IRouter `@autowired:"router"`
+	Router IRouter `@autowired:"router"`
 }
 
 // IManager interface
 type IManager interface {
 	// Bean
-	bean.IBean
+	IBean
 	// Method
 	CommandLine() error
-	Register(name string, b bean.IBean) error
+	Register(name string, b IBean) error
 	Boot() error
 	GetBean(name string) interface{}
+	GetBeanNames() []string
 }
 
 // New constructor
 func (m *Manager) New(name string) IManager {
-	bean := Manager{SERVICE: &core_services.SERVICE{Bean: &bean.Bean{}}}
+	bean := Manager{SERVICE: &SERVICE{Bean: &Bean{}}}
 	bean.ArrayOfBeans = make([]interface{}, 0)
 	bean.ArrayOfBeanNames = make([]string, 0)
 	bean.MapOfBeans = make(map[string]interface{})
@@ -83,7 +85,7 @@ func (m *Manager) Init() error {
 }
 
 // Register a single bean
-func (m *Manager) Register(name string, b bean.IBean) error {
+func (m *Manager) Register(name string, b IBean) error {
 	log.Println("Manager::Register", name)
 	m.ArrayOfBeans = append(m.ArrayOfBeans, b)
 	m.ArrayOfBeanNames = append(m.ArrayOfBeanNames, name)
@@ -95,7 +97,7 @@ func (m *Manager) Register(name string, b bean.IBean) error {
 
 // SetRouter injection
 func (m *Manager) SetRouter(value interface{}) {
-	if assertion, ok := value.(apis.IRouter); ok {
+	if assertion, ok := value.(IRouter); ok {
 		m.Router = assertion
 	} else {
 		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
@@ -120,6 +122,7 @@ func (m *Manager) Boot() error {
 	}
 	log.Printf("Manager::Boot post-construct")
 	for index := 0; index < len(m.ArrayOfBeans); index++ {
+		log.Printf("Manager::Boot post-construct execute for %v", m.ArrayOfBeanNames[index])
 		m.execute(false, m.ArrayOfBeanNames[index], m.ArrayOfBeans[index], "PostConstruct")
 		log.Printf("Manager::Boot post-construct sucessfull for %v", m.ArrayOfBeanNames[index])
 	}
@@ -182,6 +185,11 @@ func (m *Manager) Wait() error {
 // GetBean get bean
 func (m *Manager) GetBean(name string) interface{} {
 	return m.MapOfBeans[name]
+}
+
+// GetBeanNames get bean
+func (m *Manager) GetBeanNames() []string {
+	return m.ArrayOfBeanNames
 }
 
 // Inject this API

@@ -1,4 +1,4 @@
-// Package apis for common interfaces
+// Package interfaces for common interfaces
 // MIT License
 //
 // Copyright (c) 2017 yroffin
@@ -20,53 +20,50 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-package apis
+package engine
 
 import (
 	"log"
-	"reflect"
-
-	"github.com/yroffin/go-boot-sqllite/core/bean"
 )
 
-// IHREF base class
-type HREF struct {
-	// members
-	*bean.Bean
-	// all methods to declare
-	methods []APIMethod
-	// Router with injection mecanism
-	SetRouterBean func(interface{}) `bean:"router"`
-	RouterBean    *Router
-	// Crud
-	HandlerFindAll func() (string, error)
+// Bean interface
+type Bean struct {
+	Name string
 }
 
-// IHREF all package methods
-type IHREF interface {
-	bean.IBean
-	HandlerFindAll() (string, error)
+// BeanInterface interface
+type IBean interface {
+	Init() error
+	GetName() string
+	SetName(name string)
+	PostConstruct(string) error
+	Validate(string) error
 }
 
-// Init initialize the APIf
-func (p *HREF) Init() error {
-	// inject RouterBean
-	p.SetRouterBean = func(value interface{}) {
-		if assertion, ok := value.(*Router); ok {
-			p.RouterBean = assertion
-		} else {
-			log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
-		}
-	}
+// Inject Init this bean
+func (bean *Bean) Inject(string, map[string]IBean) error {
+	log.Printf("Bean::Inject")
 	return nil
 }
 
-// PostConstruct this API
-func (p *HREF) PostConstruct(name string) error {
-	return p.Bean.PostConstruct(name)
+// PostConstruct Init this bean
+func (bean *Bean) PostConstruct(string) error {
+	log.Printf("Bean::PostConstruct")
+	return nil
 }
 
-// HandlerFindAll is the GET by ID handler
-func (p *API) HandlerFindAll() func() {
+// Validate Init this bean
+func (bean *Bean) Validate(string) error {
+	log.Printf("Bean::Validate")
 	return nil
+}
+
+// SetName fix the bean name
+func (bean *Bean) SetName(name string) {
+	bean.Name = name
+}
+
+// GetName get the bean name
+func (bean *Bean) GetName() string {
+	return bean.Name
 }

@@ -22,26 +22,14 @@
 package main
 
 import (
-	"github.com/yroffin/go-boot-sqllite/core/apis"
-	"github.com/yroffin/go-boot-sqllite/core/business"
-	"github.com/yroffin/go-boot-sqllite/core/manager"
-	"github.com/yroffin/go-boot-sqllite/core/stores"
+	"github.com/yroffin/go-boot-sqllite/core/auto"
+	"github.com/yroffin/go-boot-sqllite/core/engine"
 )
 
 // Main
 func main() {
-	// declare manager and boot it
-	m := (&manager.Manager{}).New("manager")
-	// Command Line
-	m.CommandLine()
-	// Core beans
-	m.Register("swagger", (&apis.SwaggerService{}).New())
-	m.Register("router", (&apis.Router{}).New())
-	m.Register("sql-crud-business", (&business.SqlCrudBusiness{}).New())
-	m.Register("graph-crud-business", (&business.GraphCrudBusiness{}).New())
-	m.Register("sqllite-manager", (&stores.Store{}).New([]string{"Node"}, "./sqllite.db"))
-	m.Register("cayley-manager", (&stores.Graph{}).New([]string{"Node"}, "./cayley.db"))
+	auto.Version()
 	// API beans
-	m.Register("node-api", (&apis.Node{}).New())
-	m.Boot()
+	engine.Winter.Register("node-api", (&engine.Node{}).New())
+	engine.Winter.Boot()
 }

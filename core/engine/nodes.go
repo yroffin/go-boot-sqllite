@@ -20,13 +20,12 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-package apis
+package engine
 
 import (
 	"log"
 	"reflect"
 
-	core_bean "github.com/yroffin/go-boot-sqllite/core/bean"
 	"github.com/yroffin/go-boot-sqllite/core/models"
 )
 
@@ -51,7 +50,7 @@ type INode interface {
 
 // New constructor
 func (p *Node) New() INode {
-	bean := &Node{API: &API{Bean: &core_bean.Bean{}}}
+	bean := &Node{API: &API{Bean: &Bean{}}}
 	return bean
 }
 

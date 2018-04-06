@@ -1,4 +1,4 @@
-// Package interfaces for common interfaces
+// Package models for all models
 // MIT License
 //
 // Copyright (c) 2017 yroffin
@@ -20,50 +20,28 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-package bean
+package auto
 
 import (
+	"flag"
 	"log"
+
+	"github.com/yroffin/go-boot-sqllite/core/engine"
 )
 
-// Bean interface
-type Bean struct {
-	Name string
+var (
+	// WinterVersion version
+	WinterVersion = "1.0"
+)
+
+func init() {
+	log.Println("Init Winter")
+	engine.Winter.Init()
+	// Command Line
+	flag.String("Djarvis.slack.api", "", "Slack API")
+	engine.Winter.CommandLine()
 }
 
-// BeanInterface interface
-type IBean interface {
-	Init() error
-	GetName() string
-	SetName(name string)
-	PostConstruct(string) error
-	Validate(string) error
-}
-
-// SetName fix the bean name
-func (bean *Bean) SetName(name string) {
-	bean.Name = name
-}
-
-// GetName get the bean name
-func (bean *Bean) GetName() string {
-	return bean.Name
-}
-
-// Inject Init this bean
-func (bean *Bean) Inject(string, map[string]IBean) error {
-	log.Printf("Bean::Inject")
-	return nil
-}
-
-// PostConstruct Init this bean
-func (bean *Bean) PostConstruct(string) error {
-	log.Printf("Bean::PostConstruct")
-	return nil
-}
-
-// Validate Init this bean
-func (bean *Bean) Validate(string) error {
-	log.Printf("Bean::Validate")
-	return nil
+// Version version
+func Version() {
 }

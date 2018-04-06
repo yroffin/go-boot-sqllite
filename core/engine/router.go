@@ -20,7 +20,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-package apis
+package engine
 
 import (
 	"log"
@@ -28,25 +28,26 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-
-	core_bean "github.com/yroffin/go-boot-sqllite/core/bean"
-	core_services "github.com/yroffin/go-boot-sqllite/core/services"
 )
+
+func init() {
+	Winter.Register("router", (&Router{}).New())
+}
 
 // Router internal members
 type Router struct {
 	// members
-	*core_services.SERVICE
+	*SERVICE
 	// gin router
 	Engine *gin.Engine
 	// SwaggerService with injection mecanism
-	Swagger *SwaggerService `@autowired:"swagger"`
+	Swagger ISwaggerService `@autowired:"swagger"`
 }
 
 // IRouter Test all package methods
 type IRouter interface {
 	// Bean
-	core_bean.IBean
+	SERVICEInterface
 	// Http boot
 	HTTP(port int) error
 	// Https boot
@@ -65,13 +66,13 @@ type IRouter interface {
 
 // New constructor
 func (p *Router) New() IRouter {
-	bean := Router{SERVICE: &core_services.SERVICE{Bean: &core_bean.Bean{}}}
+	bean := Router{SERVICE: &SERVICE{Bean: &Bean{}}}
 	return &bean
 }
 
 // SetSwagger inject notification
 func (p *Router) SetSwagger(value interface{}) {
-	if assertion, ok := value.(*SwaggerService); ok {
+	if assertion, ok := value.(ISwaggerService); ok {
 		p.Swagger = assertion
 	} else {
 		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
@@ -88,9 +89,6 @@ func (p *Router) PostConstruct(name string) error {
 	log.Printf("Router::PostConstruct - router creation")
 	// define all routes
 	p.Engine = gin.Default()
-	// Fix default handler
-	//p.Engine.HandleMethodNotAllowed = http.HandlerFunc(p.HandlerStaticNotAllowed())
-	//p.Engine = http.HandlerFunc(p.HandlerStaticNotFound())
 
 	return nil
 }

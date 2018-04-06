@@ -20,21 +20,23 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-package apis
+package engine
 
 import (
 	"reflect"
 	"strings"
 
-	core_bean "github.com/yroffin/go-boot-sqllite/core/bean"
 	"github.com/yroffin/go-boot-sqllite/core/models"
-	core_services "github.com/yroffin/go-boot-sqllite/core/services"
 )
+
+func init() {
+	Winter.Register("swagger", (&SwaggerService{}).New())
+}
 
 // SwaggerService internal members
 type SwaggerService struct {
 	// members
-	*core_services.SERVICE
+	*SERVICE
 	// swagger model
 	Swagger *models.SwaggerModel
 }
@@ -42,7 +44,7 @@ type SwaggerService struct {
 // ISwaggerService Test all package methods
 type ISwaggerService interface {
 	// Bean
-	core_bean.IBean
+	IBean
 	// Swagger
 	SwaggerModel() *models.SwaggerModel
 	Version(string) string
@@ -53,7 +55,7 @@ type ISwaggerService interface {
 
 // New constructor
 func (p *SwaggerService) New() ISwaggerService {
-	bean := SwaggerService{SERVICE: &core_services.SERVICE{Bean: &core_bean.Bean{}}}
+	bean := SwaggerService{SERVICE: &SERVICE{Bean: &Bean{}}}
 	return &bean
 }
 

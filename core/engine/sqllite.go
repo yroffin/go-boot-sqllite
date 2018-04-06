@@ -1,4 +1,4 @@
-// Package stores for all sgbd operation
+// Package engine for all sgbd operation
 // MIT License
 //
 // Copyright (c) 2017 yroffin
@@ -20,7 +20,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-package stores
+package engine
 
 import (
 	"crypto/rand"
@@ -29,37 +29,47 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"reflect"
 	"time"
 
 	// for import driver
 	_ "github.com/mattn/go-sqlite3"
 
-	core_bean "github.com/yroffin/go-boot-sqllite/core/bean"
 	"github.com/yroffin/go-boot-sqllite/core/models"
-	core_services "github.com/yroffin/go-boot-sqllite/core/services"
 )
 
 // Store internal members
 type Store struct {
 	// members
-	*core_services.SERVICE
+	*SERVICE
 	// Store SQL lite
 	database *sql.DB
 	// Tables
 	Tables []string
 	// Db path
 	DbPath string
+	// Manager with injection mecanism
+	Manager IManager `@autowired:"manager"`
 }
 
 // New constructor
-func (p *Store) New(tables []string, dbpath string) IDataStore {
-	bean := Store{SERVICE: &core_services.SERVICE{Bean: &core_bean.Bean{}}, Tables: tables, DbPath: dbpath}
+func (p *Store) New(dbpath string) IDataStore {
+	bean := Store{SERVICE: &SERVICE{Bean: &Bean{}}, DbPath: dbpath}
 	return &bean
 }
 
 // Init Init this bean
 func (p *Store) Init() error {
 	return nil
+}
+
+// SetManager injection
+func (p *Store) SetManager(value interface{}) {
+	if assertion, ok := value.(IManager); ok {
+		p.Manager = assertion
+	} else {
+		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
+	}
 }
 
 // Clear Init this bean
@@ -97,17 +107,26 @@ func (p *Store) Statistics() ([]IStats, error) {
 
 // PostConstruct this bean
 func (p *Store) PostConstruct(name string) error {
+	// Fix tables
+	p.Tables = make([]string, 0)
+
 	// Create database
 	database, _ := sql.Open("sqlite3", p.DbPath)
 	p.database = database
 
 	// create all tables
-	for i := 0; i < len(p.Tables); i++ {
-		// prepare statement
-		statement, _ := p.database.Prepare("CREATE TABLE IF NOT EXISTS " + p.Tables[i] + " (id TEXT NOT NULL PRIMARY KEY, json JSONB)")
-		statement.Exec()
+	for i := 0; i < len(p.Manager.GetBeanNames()); i++ {
+		bean := p.Manager.GetBean(p.Manager.GetBeanNames()[i])
+		assert, ok := bean.(IAPI)
+		if ok && assert != nil && assert.GetFactory() != nil {
+			// prepare statement
+			statement, _ := p.database.Prepare("CREATE TABLE IF NOT EXISTS " + assert.GetFactory().GetName() + " (id TEXT NOT NULL PRIMARY KEY, json JSONB)")
+			statement.Exec()
+			p.Tables = append(p.Tables, assert.GetFactory().GetName())
+		}
 	}
 
+	log.Println("Tables:", p.Tables)
 	return nil
 }
 

@@ -20,7 +20,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-package stores
+package engine
 
 import (
 	"context"
@@ -39,26 +39,22 @@ import (
 	_ "github.com/cayleygraph/cayley/graph/kv/bolt"
 	"github.com/cayleygraph/cayley/quad"
 
-	core_bean "github.com/yroffin/go-boot-sqllite/core/bean"
 	"github.com/yroffin/go-boot-sqllite/core/models"
-	core_services "github.com/yroffin/go-boot-sqllite/core/services"
 )
 
 // Graph internal members
 type Graph struct {
 	// members
-	*core_services.SERVICE
+	*SERVICE
 	// Store SQL lite
 	store *graph.Handle
-	// Tables
-	Tables []string
 	// Db path
 	DbPath string
 }
 
 // New constructor
-func (p *Graph) New(tables []string, dbpath string) IGraphStore {
-	bean := Graph{SERVICE: &core_services.SERVICE{Bean: &core_bean.Bean{}}, Tables: tables, DbPath: dbpath}
+func (p *Graph) New(dbpath string) IGraphStore {
+	bean := Graph{SERVICE: &SERVICE{Bean: &Bean{}}, DbPath: dbpath}
 	return &bean
 }
 

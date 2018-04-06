@@ -20,35 +20,32 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-package business
+package engine
 
 import (
 	"log"
 	"reflect"
 
-	core_bean "github.com/yroffin/go-boot-sqllite/core/bean"
 	"github.com/yroffin/go-boot-sqllite/core/models"
-	core_services "github.com/yroffin/go-boot-sqllite/core/services"
-	"github.com/yroffin/go-boot-sqllite/core/stores"
 )
 
 // SqlCrudBusiness internal members
 type SqlCrudBusiness struct {
 	// members
-	*core_services.SERVICE
+	*SERVICE
 	// Store with injection mecanism
-	Store stores.IDataStore `@autowired:"sqllite-manager"`
+	Store IDataStore `@autowired:"sqllite-manager"`
 }
 
 // New constructor
 func (p *SqlCrudBusiness) New() ICrudBusiness {
-	bean := SqlCrudBusiness{SERVICE: &core_services.SERVICE{Bean: &core_bean.Bean{}}}
+	bean := SqlCrudBusiness{SERVICE: &SERVICE{Bean: &Bean{}}}
 	return &bean
 }
 
 // SetStore injection
 func (p *SqlCrudBusiness) SetStore(value interface{}) {
-	if assertion, ok := value.(stores.IDataStore); ok {
+	if assertion, ok := value.(IDataStore); ok {
 		p.Store = assertion
 	} else {
 		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
@@ -67,7 +64,7 @@ func (p *SqlCrudBusiness) Clear(excp []string) error {
 }
 
 // Statistics some statistics
-func (p *SqlCrudBusiness) Statistics() ([]stores.IStats, error) {
+func (p *SqlCrudBusiness) Statistics() ([]IStats, error) {
 	return p.Store.Statistics()
 }
 

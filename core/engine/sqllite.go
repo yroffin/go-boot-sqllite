@@ -29,19 +29,18 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"reflect"
 	"time"
 
 	// for import driver
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/yroffin/go-boot-sqllite/core/models"
+	"github.com/yroffin/go-boot-sqllite/core/winter"
 )
 
 // Store internal members
 type Store struct {
-	// members
-	*SERVICE
+	*winter.Service
 	// Store SQL lite
 	database *sql.DB
 	// Tables
@@ -49,27 +48,18 @@ type Store struct {
 	// Db path
 	DbPath string
 	// Manager with injection mecanism
-	Manager IManager `@autowired:"manager"`
+	APIManager IAPIManager `@autowired:"APIManager"`
 }
 
 // New constructor
 func (p *Store) New(dbpath string) IDataStore {
-	bean := Store{SERVICE: &SERVICE{Bean: &Bean{}}, DbPath: dbpath}
+	bean := Store{Service: &winter.Service{Bean: &winter.Bean{}}, DbPath: dbpath}
 	return &bean
 }
 
 // Init Init this bean
 func (p *Store) Init() error {
 	return nil
-}
-
-// SetManager injection
-func (p *Store) SetManager(value interface{}) {
-	if assertion, ok := value.(IManager); ok {
-		p.Manager = assertion
-	} else {
-		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
-	}
 }
 
 // Clear Init this bean
@@ -115,8 +105,7 @@ func (p *Store) PostConstruct(name string) error {
 	p.database = database
 
 	// create all tables
-	for i := 0; i < len(p.Manager.GetBeanNames()); i++ {
-		bean := p.Manager.GetBean(p.Manager.GetBeanNames()[i])
+	winter.Helper.ForEach(func(bean interface{}) {
 		assert, ok := bean.(IAPI)
 		if ok && assert != nil && assert.GetFactory() != nil {
 			// prepare statement
@@ -124,7 +113,7 @@ func (p *Store) PostConstruct(name string) error {
 			statement.Exec()
 			p.Tables = append(p.Tables, assert.GetFactory().GetName())
 		}
-	}
+	})
 
 	log.Println("Tables:", p.Tables)
 	return nil

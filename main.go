@@ -22,14 +22,13 @@
 package main
 
 import (
-	"github.com/yroffin/go-boot-sqllite/core/auto"
+	_ "github.com/yroffin/go-boot-sqllite/core/auto"
 	"github.com/yroffin/go-boot-sqllite/core/engine"
+	"github.com/yroffin/go-boot-sqllite/core/winter"
 )
 
 // Main
 func main() {
-	auto.Version()
-	// API beans
-	engine.Winter.Register("node-api", (&engine.Node{}).New())
-	engine.Winter.Boot()
+	winter.Helper.Register("NodeBean", (&engine.Node{}).New())
+	winter.Helper.Boot()
 }

@@ -1,4 +1,4 @@
-// Package models for all models
+// Package apis for common interfaces
 // MIT License
 //
 // Copyright (c) 2017 yroffin
@@ -20,20 +20,30 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-package auto
+package winter
 
-import (
-	"flag"
-	"log"
+// Service base class
+type Service struct {
+	// members
+	*Bean
+}
 
-	"github.com/yroffin/go-boot-sqllite/core/engine"
-	"github.com/yroffin/go-boot-sqllite/core/winter"
-)
+// IService all package methods
+type IService interface {
+	IBean
+}
 
-func init() {
-	log.Println("Init Winter")
-	winter.Helper.Init()
-	// Command Line
-	flag.String("Djarvis.slack.api", "", "Slack API")
-	winter.Helper.GetBean("APIManager").(engine.IAPIManager).CommandLine()
+// Init initialize the APIf
+func (p *Service) Init() error {
+	return nil
+}
+
+// PostConstruct this API
+func (p *Service) PostConstruct(name string) error {
+	return p.Bean.PostConstruct(name)
+}
+
+// Validate Init this bean
+func (p *Service) Validate(name string) error {
+	return p.Bean.Validate(name)
 }

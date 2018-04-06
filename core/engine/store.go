@@ -28,6 +28,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/yroffin/go-boot-sqllite/core/models"
+	"github.com/yroffin/go-boot-sqllite/core/winter"
 )
 
 // IStats stats
@@ -54,7 +55,7 @@ func (p *StoreStats) GetValue() string {
 
 // IDataStore interface
 type IDataStore interface {
-	IBean
+	winter.IBean
 	Create(entity models.IPersistent) error
 	Update(id string, entity models.IPersistent) error
 	Delete(id string, entity models.IPersistent) error
@@ -67,7 +68,7 @@ type IDataStore interface {
 
 // IGraphStore interface
 type IGraphStore interface {
-	IBean
+	winter.IBean
 	CreateLink(data models.IEdgeBean) error
 	UpdateLink(data models.IEdgeBean) error
 	DeleteLink(entity models.IEdgeBean) error

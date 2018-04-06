@@ -40,12 +40,13 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 
 	"github.com/yroffin/go-boot-sqllite/core/models"
+	"github.com/yroffin/go-boot-sqllite/core/winter"
 )
 
 // Graph internal members
 type Graph struct {
 	// members
-	*SERVICE
+	*winter.Service
 	// Store SQL lite
 	store *graph.Handle
 	// Db path
@@ -54,7 +55,7 @@ type Graph struct {
 
 // New constructor
 func (p *Graph) New(dbpath string) IGraphStore {
-	bean := Graph{SERVICE: &SERVICE{Bean: &Bean{}}, DbPath: dbpath}
+	bean := Graph{Service: &winter.Service{Bean: &winter.Bean{}}, DbPath: dbpath}
 	return &bean
 }
 

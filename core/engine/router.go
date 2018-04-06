@@ -24,20 +24,19 @@ package engine
 
 import (
 	"log"
-	"reflect"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/yroffin/go-boot-sqllite/core/winter"
 )
 
 func init() {
-	Winter.Register("router", (&Router{}).New())
+	winter.Helper.Register("router", (&Router{}).New())
 }
 
 // Router internal members
 type Router struct {
-	// members
-	*SERVICE
+	*winter.Service
 	// gin router
 	Engine *gin.Engine
 	// SwaggerService with injection mecanism
@@ -46,8 +45,7 @@ type Router struct {
 
 // IRouter Test all package methods
 type IRouter interface {
-	// Bean
-	SERVICEInterface
+	winter.IService
 	// Http boot
 	HTTP(port int) error
 	// Https boot
@@ -66,17 +64,8 @@ type IRouter interface {
 
 // New constructor
 func (p *Router) New() IRouter {
-	bean := Router{SERVICE: &SERVICE{Bean: &Bean{}}}
+	bean := Router{Service: &winter.Service{Bean: &winter.Bean{}}}
 	return &bean
-}
-
-// SetSwagger inject notification
-func (p *Router) SetSwagger(value interface{}) {
-	if assertion, ok := value.(ISwaggerService); ok {
-		p.Swagger = assertion
-	} else {
-		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
-	}
 }
 
 // Init Init this API

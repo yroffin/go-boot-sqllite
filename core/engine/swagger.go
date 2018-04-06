@@ -27,24 +27,24 @@ import (
 	"strings"
 
 	"github.com/yroffin/go-boot-sqllite/core/models"
+	"github.com/yroffin/go-boot-sqllite/core/winter"
 )
 
 func init() {
-	Winter.Register("swagger", (&SwaggerService{}).New())
+	winter.Helper.Register("swagger", (&SwaggerService{}).New())
 }
 
 // SwaggerService internal members
 type SwaggerService struct {
 	// members
-	*SERVICE
+	*winter.Service
 	// swagger model
 	Swagger *models.SwaggerModel
 }
 
 // ISwaggerService Test all package methods
 type ISwaggerService interface {
-	// Bean
-	IBean
+	winter.IService
 	// Swagger
 	SwaggerModel() *models.SwaggerModel
 	Version(string) string
@@ -55,7 +55,7 @@ type ISwaggerService interface {
 
 // New constructor
 func (p *SwaggerService) New() ISwaggerService {
-	bean := SwaggerService{SERVICE: &SERVICE{Bean: &Bean{}}}
+	bean := SwaggerService{Service: &winter.Service{Bean: &winter.Bean{}}}
 	return &bean
 }
 

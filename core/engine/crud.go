@@ -24,11 +24,12 @@ package engine
 
 import (
 	"github.com/yroffin/go-boot-sqllite/core/models"
+	"github.com/yroffin/go-boot-sqllite/core/winter"
 )
 
 // ICrudBusiness interface
 type ICrudBusiness interface {
-	IBean
+	winter.IBean
 	// Relationnal data
 	GetAll(models.IPersistent, models.IPersistents) (models.IPersistents, error)
 	Get(models.IPersistent) (models.IPersistent, error)
@@ -42,7 +43,7 @@ type ICrudBusiness interface {
 
 // ILinkBusiness interface
 type ILinkBusiness interface {
-	IBean
+	winter.IBean
 	// Linked ones
 	CreateLink(toCreate models.IEdgeBean) (models.IEdgeBean, error)
 	UpdateLink(toUpdate models.IEdgeBean) (models.IEdgeBean, error)

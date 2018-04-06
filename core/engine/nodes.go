@@ -23,10 +23,8 @@
 package engine
 
 import (
-	"log"
-	"reflect"
-
 	"github.com/yroffin/go-boot-sqllite/core/models"
+	"github.com/yroffin/go-boot-sqllite/core/winter"
 )
 
 // Node internal members
@@ -37,8 +35,8 @@ type Node struct {
 	Name string
 	// mounts
 	Crud interface{} `@crud:"/api/nodes"`
-	Link INode       `@autowired:"node-api" @link:"/api/nodes" @href:"nodes"`
-	Node INode       `@autowired:"node-api"`
+	Link INode       `@autowired:"NodeBean" @link:"/api/nodes" @href:"nodes"`
+	Node INode       `@autowired:"NodeBean"`
 	// SwaggerService with injection mecanism
 	Swagger ISwaggerService `@autowired:"swagger"`
 }
@@ -50,35 +48,8 @@ type INode interface {
 
 // New constructor
 func (p *Node) New() INode {
-	bean := &Node{API: &API{Bean: &Bean{}}}
+	bean := &Node{API: &API{Bean: &winter.Bean{}}}
 	return bean
-}
-
-// SetNode injection
-func (p *Node) SetNode(value interface{}) {
-	if assertion, ok := value.(INode); ok {
-		p.Node = assertion
-	} else {
-		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
-	}
-}
-
-// SetLink injection
-func (p *Node) SetLink(value interface{}) {
-	if assertion, ok := value.(INode); ok {
-		p.Link = assertion
-	} else {
-		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
-	}
-}
-
-// SetSwagger injection
-func (p *Node) SetSwagger(value interface{}) {
-	if assertion, ok := value.(ISwaggerService); ok {
-		p.Swagger = assertion
-	} else {
-		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
-	}
 }
 
 // Init this API
@@ -103,9 +74,4 @@ func (p *Node) PostConstruct(name string) error {
 // Validate this API
 func (p *Node) Validate(name string) error {
 	return nil
-}
-
-// HandlerTasksByID return task by id
-func (p *Node) HandlerTasksByID(id string, name string, body string) (interface{}, error) {
-	return "", nil
 }

@@ -20,25 +20,48 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-package engine
+package winter
 
-// SERVICE base class
-type SERVICE struct {
-	// members
-	*Bean
+import "log"
+
+// Bean interface
+type Bean struct {
+	Name string
 }
 
-// SERVICEInterface all package methods
-type SERVICEInterface interface {
-	IBean
+// IBean interface
+type IBean interface {
+	Init() error
+	GetName() string
+	SetName(name string)
+	PostConstruct(string) error
+	Validate(string) error
 }
 
-// Init initialize the APIf
-func (p *SERVICE) Init() error {
+// Inject Init this bean
+func (bean *Bean) Inject(string, map[string]IBean) error {
+	log.Printf("Bean::Inject")
 	return nil
 }
 
-// PostConstruct this API
-func (p *SERVICE) PostConstruct(name string) error {
-	return p.Bean.PostConstruct(name)
+// PostConstruct Init this bean
+func (bean *Bean) PostConstruct(string) error {
+	log.Printf("Bean::PostConstruct")
+	return nil
+}
+
+// Validate Init this bean
+func (bean *Bean) Validate(string) error {
+	log.Printf("Bean::Validate")
+	return nil
+}
+
+// SetName fix the bean name
+func (bean *Bean) SetName(name string) {
+	bean.Name = name
+}
+
+// GetName get the bean name
+func (bean *Bean) GetName() string {
+	return bean.Name
 }

@@ -23,33 +23,21 @@
 package engine
 
 import (
-	"log"
-	"reflect"
-
 	"github.com/yroffin/go-boot-sqllite/core/models"
+	"github.com/yroffin/go-boot-sqllite/core/winter"
 )
 
 // GraphCrudBusiness internal members
 type GraphCrudBusiness struct {
-	// members
-	*SERVICE
+	*winter.Service
 	// Store with injection mecanism
 	Store IGraphStore `@autowired:"cayley-manager"`
 }
 
 // New constructor
 func (p *GraphCrudBusiness) New() ILinkBusiness {
-	bean := GraphCrudBusiness{SERVICE: &SERVICE{Bean: &Bean{}}}
+	bean := GraphCrudBusiness{Service: &winter.Service{Bean: &winter.Bean{}}}
 	return &bean
-}
-
-// SetStore injection
-func (p *GraphCrudBusiness) SetStore(value interface{}) {
-	if assertion, ok := value.(IGraphStore); ok {
-		p.Store = assertion
-	} else {
-		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
-	}
 }
 
 // Init this bean

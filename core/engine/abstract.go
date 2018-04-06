@@ -33,23 +33,24 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/yroffin/go-boot-sqllite/core/models"
+	"github.com/yroffin/go-boot-sqllite/core/winter"
 )
 
 var (
-	// Fix tables names
+	// Tables Fix tables names
 	Tables = []string{"Node"}
 )
 
 func init() {
-	Winter.Register("graph-crud-business", (&GraphCrudBusiness{}).New())
-	Winter.Register("sql-crud-business", (&SqlCrudBusiness{}).New())
-	Winter.Register("cayley-manager", (&Graph{}).New("./cayley.db"))
-	Winter.Register("sqllite-manager", (&Store{}).New("./sqllite.db"))
+	winter.Helper.Register("graph-crud-business", (&GraphCrudBusiness{}).New())
+	winter.Helper.Register("sql-crud-business", (&SqlCrudBusiness{}).New())
+	winter.Helper.Register("cayley-manager", (&Graph{}).New("./cayley.db"))
+	winter.Helper.Register("sqllite-manager", (&Store{}).New("./sqllite.db"))
 }
 
 // API base class
 type API struct {
-	*Bean
+	*winter.Bean
 	// all mthods to declare
 	methods []APIMethod
 	// Router with injection mecanism
@@ -91,7 +92,7 @@ type CrudHandler interface {
 
 // IAPI all package methods
 type IAPI interface {
-	IBean
+	winter.IBean
 	Declare(APIMethod, interface{}) error
 	// Data handled by this API
 	GetFactory() models.IPersistent
@@ -203,33 +204,6 @@ func (p *API) addLink(ptr interface{}, path string, handler string, method strin
 		log.Printf("Successfully mounted method called '%v' on path '%s' with method '%s' - '%s'", handler, path, method, mime)
 	}
 	p.methods = append(p.methods, APIMethod{path: path, handler: handler, method: method, addr: addr, typeMime: mime, summary: sum, desc: desc, args: args, query: query, in: in, out: out, target: target})
-}
-
-// SetSQLCrudBusiness inject CrudBusiness
-func (p *API) SetSQLCrudBusiness(value interface{}) {
-	if assertion, ok := value.(ICrudBusiness); ok {
-		p.SQLCrudBusiness = assertion
-	} else {
-		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
-	}
-}
-
-// SetGraphBusiness inject CrudBusiness
-func (p *API) SetGraphBusiness(value interface{}) {
-	if assertion, ok := value.(ILinkBusiness); ok {
-		p.GraphBusiness = assertion
-	} else {
-		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
-	}
-}
-
-// SetRouter inject RouterBean
-func (p *API) SetRouter(value interface{}) {
-	if assertion, ok := value.(IRouter); ok {
-		p.Router = assertion
-	} else {
-		log.Fatalf("Unable to validate injection with %v type is %v", value, reflect.TypeOf(value))
-	}
 }
 
 // Init initialize the APIf

@@ -44,8 +44,6 @@ type IValueBean interface {
 	SetString(string, string)
 	GetAsString(string) string
 	GetAsStringArray(string) []string
-	ToString() string
-	ToJSON() string
 }
 
 // New constructor
@@ -56,8 +54,8 @@ func (p *ValueBean) New() IValueBean {
 }
 
 // ToString stringify this commnd
-func (p *ValueBean) ToString() string {
-	payload, err := json.Marshal(p.Extended)
+func ToString(p interface{}) string {
+	payload, err := json.Marshal(p)
 	if err != nil {
 		log.Println("Unable to marshal:", err)
 		return "{}"
@@ -73,11 +71,6 @@ func ToJSON(p interface{}) string {
 		return "{}"
 	}
 	return string(payload)
-}
-
-// ToJSON return o json formated value (in pretty format)
-func (p *ValueBean) ToJSON() string {
-	return ToJSON(p.Extended)
 }
 
 // Set a value for a key

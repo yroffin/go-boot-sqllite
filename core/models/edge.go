@@ -186,12 +186,6 @@ func (p *EdgeBean) GetAsStringArray(key string) []string {
 	return IValueBean(p).GetAsStringArray(key)
 }
 
-// ToString stringify this commnd
-func (p *EdgeBean) ToString() string {
-	// Call super method
-	return IValueBean(p).ToString()
-}
-
 // ToJSON stringify this commnd
 func (p *EdgeBean) ToJSON() string {
 	payload, err := json.MarshalIndent(p, "", "\t")

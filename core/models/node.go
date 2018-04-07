@@ -99,22 +99,10 @@ func (p *NodeBean) GetAsString(key string) string {
 	}
 }
 
-// Get get set name
+// GetAsStringArray as string array
 func (p *NodeBean) GetAsStringArray(key string) []string {
 	// Call super method
 	return IValueBean(p).GetAsStringArray(key)
-}
-
-// ToString stringify this commnd
-func (p *NodeBean) ToString() string {
-	// Call super method
-	return IValueBean(p).ToString()
-}
-
-// ToJSON stringify this commnd
-func (p *NodeBean) ToJSON() string {
-	// Call super method
-	return IValueBean(p).ToJSON()
 }
 
 // SetTimestamp set timestamp

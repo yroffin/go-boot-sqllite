@@ -109,6 +109,7 @@ func (p *API) GetFactory() models.IPersistent {
 	if p.Factory != nil {
 		return p.Factory()
 	}
+	log.Printf("Factory is nil for %v\n", p.GetName())
 	return nil
 }
 

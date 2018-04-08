@@ -23,7 +23,6 @@
 package auto
 
 import (
-	"flag"
 	"log"
 
 	"github.com/yroffin/go-boot-sqllite/core/engine"
@@ -33,9 +32,5 @@ import (
 func init() {
 	log.Println("Init Winter")
 	winter.Helper.Init()
-	// Command Line
-	flag.String("Djarvis.slack.api", "", "Slack API")
-	// Command Line
-	flag.String("Djarvis.zway.password", "", "Zway API")
 	winter.Helper.GetBean("APIManager").(engine.IAPIManager).CommandLine()
 }

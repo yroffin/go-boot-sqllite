@@ -30,12 +30,17 @@ import (
 // ValueBean simple value model
 type ValueBean struct {
 	// Extended internal store
-	Extended map[string]interface{} `json:"extended"`
+	Object map[string]interface{} `json:"object"`
 }
 
 // IValueSetter interface
 type IValueSetter interface {
 	Set(string, interface{})
+}
+
+// IValueGetter interface
+type IValueGetter interface {
+	Get() map[string]interface{}
 }
 
 // IValueBean simple interface
@@ -49,7 +54,7 @@ type IValueBean interface {
 // New constructor
 func (p *ValueBean) New() IValueBean {
 	bean := ValueBean{}
-	bean.Extended = make(map[string]interface{})
+	bean.Object = make(map[string]interface{})
 	return &bean
 }
 
@@ -75,17 +80,17 @@ func ToJSON(p interface{}) string {
 
 // Set a value for a key
 func (p *ValueBean) Set(key string, value interface{}) {
-	p.Extended[key] = value
+	p.Object[key] = value
 }
 
 // SetString a value for a key
 func (p *ValueBean) SetString(key string, value string) {
-	p.Extended[key] = value
+	p.Object[key] = value
 }
 
 // GetAsString field value
 func (p *ValueBean) GetAsString(key string) string {
-	if assertion, ok := p.Extended[key].(string); ok {
+	if assertion, ok := p.Object[key].(string); ok {
 		return assertion
 	}
 	log.Fatalf("Unable to render key %v for string type", key)
@@ -94,7 +99,7 @@ func (p *ValueBean) GetAsString(key string) string {
 
 // GetAsStringArray field value
 func (p *ValueBean) GetAsStringArray(key string) []string {
-	if assertion, ok := p.Extended[key].([]string); ok {
+	if assertion, ok := p.Object[key].([]string); ok {
 		return assertion
 	}
 	log.Fatalf("Unable to render key %v for string type", key)

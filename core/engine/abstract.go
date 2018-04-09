@@ -285,7 +285,7 @@ func (p *API) HandlerStaticGetAll() func(c *gin.Context) {
 func (p *API) HandlerStaticGetByID() func(c *gin.Context) {
 	anonymous := func(c *gin.Context) {
 		c.Header("Content-type", "application/json")
-		data, err := p.HandlerGetByID(c.Param("id"))
+		data, err := p.GetByID(c.Param("id"))
 		if err != nil {
 			c.String(400, "{\"message\":\"\"}")
 			return
@@ -438,7 +438,7 @@ func (p *API) HandlerLinkStaticGetAll() func(c *gin.Context, targetType IAPI) {
 func (p *API) HandlerLinkStaticGetByID() func(c *gin.Context, targetType string) {
 	anonymous := func(c *gin.Context, targetType string) {
 		c.Header("Content-type", "application/json")
-		data, err := p.HandlerGetByID(c.Param("id"))
+		data, err := p.GetByID(c.Param("id"))
 		if err != nil {
 			c.String(400, "{\"message\":\"\"}")
 			return
@@ -498,8 +498,8 @@ func (p *API) GetAll() ([]models.IPersistent, error) {
 	return p.GenericGetAll(p.Factory(), p.Factories())
 }
 
-// HandlerGetByID get by id
-func (p *API) HandlerGetByID(id string) (interface{}, error) {
+// GetByID get by id
+func (p *API) GetByID(id string) (models.IPersistent, error) {
 	return p.GenericGetByID(id, p.Factory())
 }
 
@@ -535,7 +535,7 @@ func (p *API) HandlerLinkPostByID(src string, dst string, body string, targetTyp
 	target := targetType.GetFactory()
 	p.GenericGetByID(dst, target)
 	log.Println("output", target)
-	toCreate := (&models.EdgeBean{}).New(source.GetName(), source.GetID(), targetType.GetName(), target.GetID(), "HREF")
+	toCreate := (&models.EdgeBean{}).New(source.GetEntityName(), source.GetID(), targetType.GetName(), target.GetID(), "HREF")
 	// add edge extended data
 	var ext = make(map[string]interface{})
 	json.Unmarshal([]byte(body), &ext)
@@ -554,7 +554,7 @@ func (p *API) HandlerLinkPutByID(src string, dst string, body string, targetType
 	p.GenericGetByID(src, source)
 	target := targetType.GetFactory()
 	p.GenericGetByID(dst, target)
-	toUpdate := (&models.EdgeBean{}).New(source.GetName(), source.GetID(), targetType.GetName(), target.GetID(), "HREF")
+	toUpdate := (&models.EdgeBean{}).New(source.GetEntityName(), source.GetID(), targetType.GetName(), target.GetID(), "HREF")
 	// add edge extended data, edge and instance are reserved keyword
 	var ext = make(map[string]interface{})
 	json.Unmarshal([]byte(body), &ext)
@@ -592,16 +592,10 @@ func (p *API) GenericGetAll(toGet models.IPersistent, toGets models.IPersistents
 }
 
 // GenericGetByID default method
-func (p *API) GenericGetByID(id string, toGet models.IPersistent) (interface{}, error) {
-	p.GetByID(id, toGet)
-	return toGet, nil
-}
-
-// GetByID default method
-func (p *API) GetByID(id string, toGet models.IPersistent) error {
+func (p *API) GenericGetByID(id string, toGet models.IPersistent) (models.IPersistent, error) {
 	toGet.SetID(id)
 	p.SQLCrudBusiness.Get(toGet)
-	return nil
+	return toGet, nil
 }
 
 // GenericPost adefault method
@@ -665,14 +659,14 @@ func (p *API) GenericLinkDeleteByID(assoc models.IEdgeBean) (interface{}, error)
 // GenericLinkGetAll default method
 func (p *API) GenericLinkGetAll(id string, links []models.IEdgeBean, targetType IAPI) ([]models.IPersistent, error) {
 	// Retrieve all links
-	edges, _ := p.GraphBusiness.GetAllLink(p.GetFactory().GetName(), id, links, targetType.GetName())
+	edges, _ := p.GraphBusiness.GetAllLink(p.GetFactory().GetEntityName(), id, links, targetType.GetName())
 	// Build output
 	output := make([]models.IPersistent, 0)
 	for _, edge := range edges {
 		// Retrive bean
 		t := targetType.GetFactory()
 		// Filter by type
-		if edge.GetTarget() == t.GetName() {
+		if edge.GetTarget() == t.GetEntityName() {
 			t.SetID(edge.GetTargetID())
 			p.SQLCrudBusiness.Get(t)
 			ex := make(map[string]interface{})

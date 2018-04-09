@@ -127,8 +127,8 @@ func (p *EdgeBean) GetLink() string {
 	return p.Link
 }
 
-// GetName get set name
-func (p *EdgeBean) GetName() string {
+// GetEntityName get set name
+func (p *EdgeBean) GetEntityName() string {
 	return "Edge"
 }
 

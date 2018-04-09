@@ -53,8 +53,8 @@ func (p *NodeBean) New() INodeBean {
 	return &bean
 }
 
-// GetName get set name
-func (p *NodeBean) GetName() string {
+// GetEntityName get set name
+func (p *NodeBean) GetEntityName() string {
 	return "NodeBean"
 }
 

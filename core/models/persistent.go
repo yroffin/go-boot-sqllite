@@ -53,7 +53,7 @@ func (t *JSONTime) UnmarshalJSON(data []byte) error {
 // IPersistent interface
 type IPersistent interface {
 	GetID() string
-	GetName() string
+	GetEntityName() string
 	SetID(string)
 	GetTimestamp() JSONTime
 	SetTimestamp(JSONTime)

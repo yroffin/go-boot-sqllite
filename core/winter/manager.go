@@ -23,15 +23,31 @@
 package winter
 
 import (
-	"log"
+	"os"
 	"reflect"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var (
 	// Helper manage beans
 	Helper = (&Manager{}).New("manager")
 )
+
+func init() {
+	// Log as JSON instead of the default ASCII formatter.
+	log.SetFormatter(&log.TextFormatter{
+		ForceColors: true,
+	})
+
+	// Output to stdout instead of the default stderr
+	// Can be any io.Writer, see below for File example
+	log.SetOutput(os.Stdout)
+
+	// Only log the warning severity or above.
+	log.SetLevel(log.DebugLevel)
+}
 
 // Manager interface
 type Manager struct {
@@ -66,7 +82,6 @@ func (m *Manager) New(name string) IManager {
 
 // Init a single bean
 func (m *Manager) Init() error {
-	log.Printf("Manager::Init")
 	return nil
 }
 
@@ -80,7 +95,6 @@ func (m *Manager) ForEach(iter func(interface{})) {
 
 // Register a single bean
 func (m *Manager) Register(name string, b IBean) error {
-	log.Println("Manager::Register", name)
 	m.ArrayOfBeans = append(m.ArrayOfBeans, b)
 	m.ArrayOfBeanNames = append(m.ArrayOfBeanNames, name)
 	m.MapOfBeans[name] = b
@@ -91,21 +105,29 @@ func (m *Manager) Register(name string, b IBean) error {
 
 // Boot Init this manager
 func (m *Manager) Boot() error {
-	log.Printf("Manager::Boot inject")
 	for index := 0; index < len(m.ArrayOfBeans); index++ {
 		m.Inject(m.ArrayOfBeanNames[index], m.ArrayOfBeans[index])
-		log.Printf("Manager::Boot injection sucessfull for %v", m.ArrayOfBeanNames[index])
+		log.WithFields(log.Fields{
+			"name": m.ArrayOfBeanNames[index],
+		}).Info("Boot injection sucessfull")
 	}
-	log.Printf("Manager::Boot post-construct")
 	for index := 0; index < len(m.ArrayOfBeans); index++ {
-		log.Printf("Manager::Boot post-construct execute for %v", m.ArrayOfBeanNames[index])
+		log.WithFields(log.Fields{
+			"name": m.ArrayOfBeanNames[index],
+		}).Info("Boot post-construct execute")
 		m.execute(false, m.ArrayOfBeanNames[index], m.ArrayOfBeans[index], "PostConstruct")
-		log.Printf("Manager::Boot post-construct sucessfull for %v", m.ArrayOfBeanNames[index])
+		log.WithFields(log.Fields{
+			"name": m.ArrayOfBeanNames[index],
+		}).Info("Boot post-construct execute sucessfull")
 	}
-	log.Printf("Manager::Boot validate")
 	for index := 0; index < len(m.ArrayOfBeans); index++ {
+		log.WithFields(log.Fields{
+			"name": m.ArrayOfBeanNames[index],
+		}).Info("Boot post-construct validate")
 		m.execute(false, m.ArrayOfBeanNames[index], m.ArrayOfBeans[index], "Validate")
-		log.Printf("Manager::Boot validation sucessfull for %v", m.ArrayOfBeanNames[index])
+		log.WithFields(log.Fields{
+			"name": m.ArrayOfBeanNames[index],
+		}).Info("Boot post-construct validate sucessfull")
 	}
 	return nil
 }
@@ -134,10 +156,14 @@ func (m *Manager) isPrivate(val reflect.StructField) bool {
 // dumpFields dump all fields
 func (m *Manager) autowire(debug bool, level int, name string, intf interface{}, val reflect.Value) {
 	if debug {
-		log.Printf("%02d: **** METHOD ***", level)
+		log.WithFields(log.Fields{
+			"level": level,
+		}).Debug("Method")
 		for i := 0; i < val.NumMethod(); i++ {
 			typeMethod := val.Type().Method(i)
-			log.Printf("Method Name: '%s'", typeMethod.Name)
+			log.WithFields(log.Fields{
+				"name": typeMethod.Name,
+			}).Debug("Method name")
 		}
 	}
 
@@ -169,18 +195,27 @@ func (m *Manager) autowire(debug bool, level int, name string, intf interface{},
 	}
 
 	if debug {
-		log.Printf("%02d: **** FIELDS ****", level)
+		log.WithFields(log.Fields{
+			"level": level,
+		}).Debug("Field")
 		for i := 0; i < val.NumField(); i++ {
 			valueField := val.Field(i)
 			typeField := val.Type().Field(i)
 			tag := typeField.Tag
-			log.Printf("Field  Name: '%s'\tField Value: '%v'\t Tag Value: '%v'", typeField.Name, valueField.Interface(), tag)
+			log.WithFields(log.Fields{
+				"name":      typeField.Name,
+				"interface": valueField.Interface(),
+				"tag":       tag,
+			}).Debug("Field")
 		}
 	}
 
 	// Dump all methods
 	if debug {
-		log.Printf("**** INJECT/SCAN **** Type: '%v' Kind: '%v'", val.Type(), val.Type().Kind())
+		log.WithFields(log.Fields{
+			"type": val.Type(),
+			"kind": val.Type().Kind(),
+		}).Debug("Injection/scan")
 	}
 	for i := 0; i < val.NumField(); i++ {
 		valueField := val.Field(i)
@@ -192,11 +227,10 @@ func (m *Manager) autowire(debug bool, level int, name string, intf interface{},
 					var beanName = tag.Get("@autowired")
 					// myBean contain the target bean to inject
 					var myBean = m.MapOfBeans[beanName]
-					var camelCaseOperation = "Set" + typeField.Name
-					var setter = reflect.ValueOf(intf).MethodByName(camelCaseOperation)
-					arr := [1]reflect.Value{reflect.ValueOf(myBean)}
-					var arguments = arr[:1]
-					log.Printf("Apply: '%s' on %v with %v(%v) - %v", camelCaseOperation, beanName, setter, arguments, name)
+					log.WithFields(log.Fields{
+						"bean": myBean,
+						"name": typeField.Name,
+					}).Debug("Set")
 					//setter.Call(arguments)
 					valueField.Set(reflect.ValueOf(myBean))
 				}
@@ -227,7 +261,10 @@ func (m *Manager) execute(debug bool, beanName string, intf interface{}, handler
 			arr := [1]reflect.Value{reflect.ValueOf(beanName)}
 			var arguments = arr[:1]
 			if debug {
-				log.Printf("Apply: '%s' on %v with %v(%v)", handler, beanName, setter, beanName)
+				log.WithFields(log.Fields{
+					"handler": handler,
+					"name":    beanName,
+				}).Debug("Execute")
 			}
 			setter.Call(arguments)
 		}

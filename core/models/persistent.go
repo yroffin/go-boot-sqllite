@@ -24,9 +24,10 @@ package models
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // JSONTime for json datetime handle
@@ -44,7 +45,10 @@ func (t *JSONTime) UnmarshalJSON(data []byte) error {
 	var ns = strings.Replace(string(data), "\"", "", 1000)
 	v, err := time.Parse(time.RFC3339Nano, ns)
 	if err != nil {
-		log.Printf("Error while decoding '%s' -> '%s'", ns, err)
+		log.WithFields(log.Fields{
+			"error": err,
+			"value": ns,
+		}).Error("Error while decoding")
 	}
 	*t = JSONTime(v)
 	return nil

@@ -24,7 +24,8 @@ package models
 
 import (
 	"encoding/json"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // ValueBean simple value model
@@ -62,7 +63,9 @@ func (p *ValueBean) New() IValueBean {
 func ToString(p interface{}) string {
 	payload, err := json.Marshal(p)
 	if err != nil {
-		log.Println("Unable to marshal:", err)
+		log.WithFields(log.Fields{
+			"error": err,
+		}).Error("Unable to marshal")
 		return "{}"
 	}
 	return string(payload)
@@ -72,7 +75,9 @@ func ToString(p interface{}) string {
 func ToJSON(p interface{}) string {
 	payload, err := json.MarshalIndent(p, "", "\t")
 	if err != nil {
-		log.Println("Unable to marshal:", err)
+		log.WithFields(log.Fields{
+			"error": err,
+		}).Error("Unable to marshal")
 		return "{}"
 	}
 	return string(payload)
@@ -93,7 +98,6 @@ func (p *ValueBean) GetAsString(key string) string {
 	if assertion, ok := p.Object[key].(string); ok {
 		return assertion
 	}
-	log.Fatalf("Unable to render key %v for string type", key)
 	return ""
 }
 
@@ -102,6 +106,5 @@ func (p *ValueBean) GetAsStringArray(key string) []string {
 	if assertion, ok := p.Object[key].([]string); ok {
 		return assertion
 	}
-	log.Fatalf("Unable to render key %v for string type", key)
 	return make([]string, 0)
 }

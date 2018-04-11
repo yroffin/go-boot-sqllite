@@ -23,8 +23,9 @@
 package engine
 
 import (
-	"log"
 	"strconv"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yroffin/go-boot-sqllite/core/winter"
@@ -75,7 +76,6 @@ func (p *Router) Init() error {
 
 // PostConstruct Init this API
 func (p *Router) PostConstruct(name string) error {
-	log.Printf("Router::PostConstruct - router creation")
 	// define all routes
 	p.Engine = gin.Default()
 
@@ -84,7 +84,6 @@ func (p *Router) PostConstruct(name string) error {
 
 // Validate Init this API
 func (p *Router) Validate(name string) error {
-	log.Printf("Router::Validate - router validation")
 	p.Engine.Static("/public", "./resources/static")
 	return nil
 }
@@ -113,35 +112,30 @@ func (p *Router) HTTPS(port int) error {
 
 // HandleFunc declare a handler
 func (p *Router) HandleFuncTonic(path string, f func() (interface{}, error), method string, content string) {
-	log.Printf("Router::HandleFuncTonic '%s' with method '%s' with type mime '%s'", path, method, content)
 	// declare it to the router
 	p.Engine.Handle(method, path, p.HandlerStaticJson(f, 200, ""))
 }
 
 // HandleFunc declare a handler
 func (p *Router) HandleFunc(path string, f func(c *gin.Context), method string, content string) {
-	log.Printf("Router::HandleFunc '%s' with method '%s' with type mime '%s'", path, method, content)
 	// declare it to the router
 	p.Engine.Handle(method, path, p.HandlerStatic(f, content))
 }
 
 // HandleFuncLink declare a handler
 func (p *Router) HandleFuncLink(path string, f func(c *gin.Context, target IAPI), method string, content string, target IAPI) {
-	log.Printf("Router::HandleFunc '%s' with method '%s' with type mime '%s'", path, method, content)
 	// declare it to the router
 	p.Engine.Handle(method, path, p.HandlerStaticLink(f, content, target))
 }
 
 // HandleFuncString declare a string handler
 func (p *Router) HandleFuncString(path string, f func() (string, error), method string, content string) {
-	log.Printf("Router::HandleFuncString '%s' with method '%s' with type mime '%s'", path, method, content)
 	// declare it to the router
 	p.Engine.Handle(method, path, p.HandlerStaticString(f, content))
 }
 
 // HandleFuncStringWithId declare a string handler
 func (p *Router) HandleFuncStringWithId(path string, f func(string) (string, error), method string, content string) {
-	log.Printf("Router::HandleFuncStringWithId '%s' with method '%s' with type mime '%s'", path, method, content)
 	// declare it to the router
 	p.Engine.Handle(method, path, p.HandlerStaticStringWithId(f, content))
 }
@@ -149,9 +143,11 @@ func (p *Router) HandleFuncStringWithId(path string, f func(string) (string, err
 // HandlerStaticNotFound Not found handler
 func (p *Router) HandlerStaticNotFound() func(c *gin.Context) {
 	anonymous := func(c *gin.Context) {
-		log.Printf("Request request %v", c.Request)
-		log.Printf("Request header %v", c.Request.Header)
-		log.Printf("Request Encoding %v", c.Request.TransferEncoding)
+		log.WithFields(log.Fields{
+			"request":  c.Request,
+			"header":   c.Request.Header,
+			"encoding": c.Request.TransferEncoding,
+		}).Warn("While retrrieve row(s)")
 		// content
 		c.Header("Content-type", "text/html")
 		c.String(404, "{\"message\":\"Not found\"}")
@@ -162,9 +158,11 @@ func (p *Router) HandlerStaticNotFound() func(c *gin.Context) {
 // HandlerStaticNotAllowed Not found handler
 func (p *Router) HandlerStaticNotAllowed() func(c *gin.Context) {
 	anonymous := func(c *gin.Context) {
-		log.Printf("Request request %v", c.Request)
-		log.Printf("Request header %v", c.Request.Header)
-		log.Printf("Request Encoding %v", c.Request.TransferEncoding)
+		log.WithFields(log.Fields{
+			"request":  c.Request,
+			"header":   c.Request.Header,
+			"encoding": c.Request.TransferEncoding,
+		}).Warn("While retrrieve row(s)")
 		// content
 		c.Header("Content-type", "text/html")
 		c.String(405, "{\"message\":\"Not allowed\"}")

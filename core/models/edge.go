@@ -24,7 +24,8 @@ package models
 
 import (
 	"encoding/json"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // EdgeBean simple command model
@@ -190,7 +191,9 @@ func (p *EdgeBean) GetAsStringArray(key string) []string {
 func (p *EdgeBean) ToJSON() string {
 	payload, err := json.MarshalIndent(p, "", "\t")
 	if err != nil {
-		log.Println("Unable to marshal:", err)
+		log.WithFields(log.Fields{
+			"error": err,
+		}).Error("Unable to marshal")
 		return "{}"
 	}
 	return string(payload)

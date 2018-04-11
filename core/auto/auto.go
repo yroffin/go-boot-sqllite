@@ -23,14 +23,11 @@
 package auto
 
 import (
-	"log"
-
 	"github.com/yroffin/go-boot-sqllite/core/engine"
 	"github.com/yroffin/go-boot-sqllite/core/winter"
 )
 
 func init() {
-	log.Println("Init Winter")
 	winter.Helper.Init()
 	winter.Helper.GetBean("APIManager").(engine.IAPIManager).CommandLine()
 }

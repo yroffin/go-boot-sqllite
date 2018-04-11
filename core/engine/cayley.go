@@ -28,8 +28,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
@@ -72,7 +73,9 @@ func (p *Graph) PostConstruct(name string) error {
 	// Open and use the database
 	database, err := cayley.NewGraph("bolt", p.DbPath, nil)
 	if err != nil {
-		log.Fatalln(err)
+		log.WithFields(log.Fields{
+			"error": err,
+		}).Error("PostConstruct")
 	}
 	p.store = database
 
@@ -163,7 +166,10 @@ func (p *Graph) CreateLink(data models.IEdgeBean) error {
 	// insert
 	jsonData, _ := json.Marshal(data)
 	quad := quad.Make("/"+data.GetSource()+"/"+data.GetSourceID(), data.GetLink()+":"+uuid, "/"+data.GetTarget()+"/"+data.GetTargetID(), string(jsonData))
-	log.Println("Create:", quad, string(jsonData))
+	log.WithFields(log.Fields{
+		"json": string(jsonData),
+		"quad": quad,
+	}).Info("Create")
 	p.store.AddQuad(quad)
 	return nil
 }
@@ -186,7 +192,10 @@ func (p *Graph) UpdateLink(data models.IEdgeBean) error {
 	// insert
 	jsonData, _ := json.Marshal(data)
 	quad := quad.Make("/"+data.GetSource()+"/"+data.GetSourceID(), data.GetLink()+":"+uuid, "/"+data.GetTarget()+"/"+data.GetTargetID(), string(jsonData))
-	log.Println("Update:", quad, string(jsonData))
+	log.WithFields(log.Fields{
+		"json": string(jsonData),
+		"quad": quad,
+	}).Info("Update")
 	p.store.AddQuad(quad)
 	return nil
 }
@@ -197,7 +206,11 @@ func (p *Graph) DeleteLink(toDelete models.IEdgeBean) error {
 	for it.Next(context.Background()) {
 		qu := p.store.Quad(it.Result())
 		if strings.HasSuffix(qu.Predicate.Native().(string), ":"+toDelete.GetInstance()) {
-			log.Println("Remove:", qu.Subject.Native(), qu.Predicate.Native(), qu.Object.Native())
+			log.WithFields(log.Fields{
+				"subject":   qu.Subject.Native(),
+				"predicate": qu.Predicate.Native(),
+				"object":    qu.Object.Native(),
+			}).Info("Remove")
 			tx := cayley.NewTransaction()
 			tx.RemoveQuad(qu)
 			p.store.ApplyTransaction(tx)
@@ -255,7 +268,9 @@ func (p *Graph) QueryGizmo(text string, tag string) ([]models.IEdgeBean, error) 
 			resultSet = append(resultSet, &data)
 			break
 		default:
-			log.Println("Unknown:", res)
+			log.WithFields(log.Fields{
+				"result": res,
+			}).Warn("Unknown")
 		}
 	}
 	return resultSet, nil

@@ -28,8 +28,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	// for import driver
 	_ "github.com/mattn/go-sqlite3"
@@ -115,7 +116,9 @@ func (p *Store) PostConstruct(name string) error {
 		}
 	})
 
-	log.Println("Tables:", p.Tables)
+	log.WithFields(log.Fields{
+		"tables": p.Tables,
+	}).Info("Tables")
 	return nil
 }
 
@@ -169,7 +172,11 @@ func (p *Store) Update(id string, entity models.IPersistent) error {
 	res, _ := statement.Exec(string(data), id)
 	rowAffected, _ := res.RowsAffected()
 	if rowAffected == 0 {
-		log.Printf("'%s' with id '%v' affected %d row(s)", "UPDATE "+entityName+" SET json = ? WHERE id = ?", id, rowAffected)
+		log.WithFields(log.Fields{
+			"id":       id,
+			"affected": rowAffected,
+			"sql":      "UPDATE " + entityName + " SET json = ? WHERE id = ?",
+		}).Info("Affected row(s)")
 	}
 	return nil
 }
@@ -185,7 +192,11 @@ func (p *Store) Delete(id string, entity models.IPersistent) error {
 	res, _ := statement.Exec(id)
 	rowAffected, _ := res.RowsAffected()
 	if rowAffected == 0 {
-		log.Printf("'%s' with id '%v' affected %d row(s)", "DELETE FROM "+entityName+" WHERE id = ?", id, rowAffected)
+		log.WithFields(log.Fields{
+			"id":       id,
+			"affected": rowAffected,
+			"sql":      "DELETE FROM " + entityName + " WHERE id = ?",
+		}).Info("Affected row(s)")
 	}
 	return nil
 }
@@ -199,7 +210,10 @@ func (p *Store) Truncate(entity models.IPersistent) error {
 	res, _ := statement.Exec()
 	rowAffected, _ := res.RowsAffected()
 	if rowAffected == 0 {
-		log.Printf("'%s' affected %d row(s)", "DELETE FROM "+entityName, rowAffected)
+		log.WithFields(log.Fields{
+			"affected": rowAffected,
+			"sql":      "DELETE FROM " + entityName,
+		}).Info("Affected row(s)")
 	}
 	return nil
 }
@@ -228,7 +242,10 @@ func (p *Store) GetAll(entity models.IPersistent, array models.IPersistents) err
 	var query = "SELECT id, json FROM " + entityName
 	rows, err := p.database.Query(query)
 	if err != nil {
-		log.Println("Error:", err, " while retrieve all rows:", query)
+		log.WithFields(log.Fields{
+			"sql":   query,
+			"error": err,
+		}).Error("While retrrieve row(s)")
 		return err
 	}
 	var id string

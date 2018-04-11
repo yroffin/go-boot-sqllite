@@ -26,10 +26,11 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"log"
 	"reflect"
 	"strconv"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yroffin/go-boot-sqllite/core/models"
@@ -109,7 +110,9 @@ func (p *API) GetFactory() models.IPersistent {
 	if p.Factory != nil {
 		return p.Factory()
 	}
-	log.Printf("Factory is nil for %v\n", p.GetName())
+	log.WithFields(log.Fields{
+		"name": p.GetName(),
+	}).Info("Factory is nil")
 	return nil
 }
 
@@ -140,14 +143,18 @@ func (p *API) ScanHandler(swagger ISwaggerService, ptr interface{}) {
 		value := values.Field(i)
 		// declare a standard mux handler
 		if len(field.Tag.Get("@handler")) > 0 {
-			log.Println("Info:", field.Name, "handler")
+			log.WithFields(log.Fields{
+				"name": field.Name,
+			}).Info("Handler")
 			p.add(ptr, field.Tag.Get("path"), field.Tag.Get("@handler"), field.Tag.Get("method"), field.Tag.Get("mime-type"), "", "", map[string]interface{}{}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{})
 		}
 		// declare a crud handler
 		if len(field.Tag.Get("@crud")) > 0 {
 			assert, conv := ptr.(IAPI)
 			if conv {
-				log.Println("Info:", field.Name, "is API")
+				log.WithFields(log.Fields{
+					"name": field.Name,
+				}).Info("Api")
 				p.add(ptr, field.Tag.Get("@crud"), "HandlerStaticGetAll", "GET", "application/json", "Get all", "Get all resources", map[string]interface{}{}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactories()})
 				p.add(ptr, field.Tag.Get("@crud"), "HandlerStaticPost", "POST", "application/json", "Execute a task or create", "Execute a task on all resources", map[string]interface{}{}, map[string]interface{}{"task": "params"}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()})
 				p.add(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticGetByID", "GET", "application/json", "Get by id", "Get a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()})
@@ -156,7 +163,10 @@ func (p *API) ScanHandler(swagger ISwaggerService, ptr interface{}) {
 				p.add(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticPatchByID", "PATCH", "application/json", "Patch by id", "Patch a resource by its id", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()})
 				p.add(ptr, field.Tag.Get("@crud")+"/:id", "HandlerStaticPostByID", "POST", "application/json", "Execute a task", "Execute a new task on resource", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"201": assert.GetFactory()})
 			} else {
-				log.Println("Warning:", field.Name, "is not API", reflect.TypeOf(value))
+				log.WithFields(log.Fields{
+					"name": field.Name,
+					"type": reflect.TypeOf(value),
+				}).Warn("Is not api")
 			}
 		}
 		// declare a link handler
@@ -164,14 +174,20 @@ func (p *API) ScanHandler(swagger ISwaggerService, ptr interface{}) {
 			assert, conv := value.Interface().(IAPI)
 			if conv {
 				var linkName = field.Tag.Get("@href")
-				log.Println("Info:", field.Name, "is API/HREF", assert.GetName())
+				log.WithFields(log.Fields{
+					"name": field.Name,
+					"link": assert.GetName(),
+				}).Info("Api/href")
 				p.addLink(ptr, field.Tag.Get("@link")+"/:id/"+linkName, "HandlerLinkStaticGetAll", "GET", "application/json", "Get all", "Get all resources", map[string]interface{}{"id": "Id"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactories()}, assert)
 				p.addLink(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticGetByID", "GET", "application/json", "Get by id", "Get a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()}, assert)
 				p.addLink(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticPostByID", "POST", "application/json", "Update by id", "Update a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()}, assert)
 				p.addLink(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticPutByID", "PUT", "application/json", "Update by id", "Update a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{assert.GetFactory()}, map[string]interface{}{"200": assert.GetFactory()}, assert)
 				p.addLink(ptr, field.Tag.Get("@link")+"/:id/"+linkName+"/:link", "HandlerLinkStaticDeleteByID", "DELETE", "application/json", "Delete by id", "Delete a resource by its id", map[string]interface{}{"id": "Id", "link": "Link"}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{"200": assert.GetFactory()}, assert)
 			} else {
-				log.Println("Warning:", field.Name, "is not API/HREF", reflect.TypeOf(value.Interface()))
+				log.WithFields(log.Fields{
+					"name": field.Name,
+					"type": reflect.TypeOf(value.Interface()),
+				}).Warn("Is not api/href")
 			}
 		}
 	}
@@ -189,9 +205,16 @@ func (p *API) ScanHandler(swagger ISwaggerService, ptr interface{}) {
 func (p *API) add(ptr interface{}, path string, handler string, method string, mime string, sum string, desc string, args map[string]interface{}, query map[string]interface{}, in []interface{}, out map[string]interface{}) {
 	addr := reflect.ValueOf(ptr).MethodByName(handler)
 	if !addr.IsValid() || addr.IsNil() {
-		log.Fatalf("Unable to find any method called '%v'", handler)
+		log.WithFields(log.Fields{
+			"name": handler,
+		}).Fatal("Unable to find any method")
 	} else {
-		log.Printf("Successfully mounted method called '%v' on path '%s' with method '%s' - '%s'", handler, path, method, mime)
+		log.WithFields(log.Fields{
+			"name":   handler,
+			"path":   path,
+			"method": method,
+			"mime":   mime,
+		}).Info("Successfully mounted method")
 	}
 	p.methods = append(p.methods, APIMethod{path: path, handler: handler, method: method, addr: addr, typeMime: mime, summary: sum, desc: desc, args: args, query: query, in: in, out: out})
 }
@@ -200,9 +223,16 @@ func (p *API) add(ptr interface{}, path string, handler string, method string, m
 func (p *API) addLink(ptr interface{}, path string, handler string, method string, mime string, sum string, desc string, args map[string]interface{}, query map[string]interface{}, in []interface{}, out map[string]interface{}, target IAPI) {
 	addr := reflect.ValueOf(ptr).MethodByName(handler)
 	if !addr.IsValid() || addr.IsNil() {
-		log.Fatalf("Unable to find any method called '%v'", handler)
+		log.WithFields(log.Fields{
+			"name": handler,
+		}).Fatal("Unable to find any method")
 	} else {
-		log.Printf("Successfully mounted method called '%v' on path '%s' with method '%s' - '%s'", handler, path, method, mime)
+		log.WithFields(log.Fields{
+			"name":   handler,
+			"path":   path,
+			"method": method,
+			"mime":   mime,
+		}).Info("Successfully mounted method")
 	}
 	p.methods = append(p.methods, APIMethod{path: path, handler: handler, method: method, addr: addr, typeMime: mime, summary: sum, desc: desc, args: args, query: query, in: in, out: out, target: target})
 }
@@ -214,7 +244,10 @@ func (p *API) Init() error {
 	var arguments = arr[1:1]
 	// build all static acess to low level function (private)
 	for i := 0; i < len(p.methods); i++ {
-		log.Printf("Build static link for %v with %v", p.methods[i].path, arguments)
+		log.WithFields(log.Fields{
+			"path":        p.methods[i].path,
+			"argument(s)": arguments,
+		}).Info("Build static link")
 		// compute rvalue
 		var rvalue = p.methods[i].addr.Call(arguments)[0]
 		// declare this new method
@@ -237,28 +270,52 @@ func (p *API) Validate(name string) error {
 func (p *API) Declare(data APIMethod, intf interface{}) error {
 	// verify type
 	if value, ok := intf.(func(c *gin.Context, target IAPI)); ok {
-		log.Printf("Declare handler() '%s' on '%s' with method '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (p.Router).GetName(), data.typeMime)
+		log.WithFields(log.Fields{
+			"handler": data.handler,
+			"path":    data.path,
+			"method":  data.method,
+			"router":  (p.Router).GetName(),
+			"mime":    data.typeMime,
+		}).Info("Declare handler")
 		// declare it to the router
 		(p.Router).HandleFuncLink(data.path, value, data.method, data.typeMime, data.target)
 		return nil
 	}
 	// verify type
 	if value, ok := intf.(func(c *gin.Context)); ok {
-		log.Printf("Declare handler() '%s' on '%s' with method '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (p.Router).GetName(), data.typeMime)
+		log.WithFields(log.Fields{
+			"handler": data.handler,
+			"path":    data.path,
+			"method":  data.method,
+			"router":  (p.Router).GetName(),
+			"mime":    data.typeMime,
+		}).Info("Declare handler")
 		// declare it to the router
 		(p.Router).HandleFunc(data.path, value, data.method, data.typeMime)
 		return nil
 	}
 	// verify type
 	if value, ok := intf.(func() (string, error)); ok {
-		log.Printf("Declare function() '%s' on '%s' with method '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (p.Router).GetName(), data.typeMime)
+		log.WithFields(log.Fields{
+			"handler": data.handler,
+			"path":    data.path,
+			"method":  data.method,
+			"router":  (p.Router).GetName(),
+			"mime":    data.typeMime,
+		}).Info("Declare function")
 		// declare it to the router
 		(p.Router).HandleFuncString(data.path, value, data.method, data.typeMime)
 		return nil
 	}
 	// verify type
 	if value, ok := intf.(func(string) (string, error)); ok {
-		log.Printf("Declare function() '%s' on '%s' with method with id '%s' ('%s') with type '%s'", data.handler, data.path, data.method, (p.Router).GetName(), data.typeMime)
+		log.WithFields(log.Fields{
+			"handler": data.handler,
+			"path":    data.path,
+			"method":  data.method,
+			"router":  (p.Router).GetName(),
+			"mime":    data.typeMime,
+		}).Info("Declare function")
 		// declare it to the router
 		(p.Router).HandleFuncStringWithId(data.path, value, data.method, data.typeMime)
 		return nil
@@ -534,7 +591,6 @@ func (p *API) HandlerLinkPostByID(src string, dst string, body string, targetTyp
 	p.GenericGetByID(src, source)
 	target := targetType.GetFactory()
 	p.GenericGetByID(dst, target)
-	log.Println("output", target)
 	toCreate := (&models.EdgeBean{}).New(source.GetEntityName(), source.GetID(), targetType.GetName(), target.GetID(), "HREF")
 	// add edge extended data
 	var ext = make(map[string]interface{})
@@ -602,10 +658,12 @@ func (p *API) GenericGetByID(id string, toGet models.IPersistent) (models.IPersi
 func (p *API) GenericPost(body string, toCreate models.IPersistent) (interface{}, error) {
 	var bin = []byte(body)
 	result := json.Unmarshal(bin, &toCreate)
-	log.Println("JSON", body, models.ToJSON(toCreate))
 	// check unmashal errors
 	if result != nil {
-		log.Printf("Error, while Unmarshaling body %v - %v", body, result)
+		log.WithFields(log.Fields{
+			"body":   body,
+			"result": result,
+		}).Error("Unmarshaling body")
 		return body, result
 	}
 	bean, _ := p.SQLCrudBusiness.Create(toCreate)

@@ -22,8 +22,6 @@
 // SOFTWARE.
 package winter
 
-import "log"
-
 // Bean interface
 type Bean struct {
 	Name string
@@ -40,19 +38,16 @@ type IBean interface {
 
 // Inject Init this bean
 func (bean *Bean) Inject(string, map[string]IBean) error {
-	log.Printf("Bean::Inject")
 	return nil
 }
 
 // PostConstruct Init this bean
 func (bean *Bean) PostConstruct(string) error {
-	log.Printf("Bean::PostConstruct")
 	return nil
 }
 
 // Validate Init this bean
 func (bean *Bean) Validate(string) error {
-	log.Printf("Bean::Validate")
 	return nil
 }
 

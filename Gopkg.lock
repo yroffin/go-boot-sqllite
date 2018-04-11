@@ -9,15 +9,9 @@
 
 [[projects]]
   name = "github.com/cayleygraph/cayley"
-  packages = [".","clog","graph","graph/iterator","graph/kv","graph/kv/bolt","graph/log","graph/memstore","graph/path","graph/proto","graph/shape","internal/lru","quad","quad/pquads","quad/pquads/pio","query","query/gizmo","query/graphql","schema","voc","voc/rdf","voc/rdfs","voc/schema","writer"]
+  packages = [".","clog","graph","graph/iterator","graph/kv","graph/kv/bolt","graph/log","graph/memstore","graph/path","graph/proto","graph/shape","internal/lru","quad","quad/pquads","quad/pquads/pio","query","query/gizmo","schema","voc","voc/rdf","voc/rdfs","voc/schema","writer"]
   revision = "3091e673e8d9a945a71e286ca90f5e478e3ac503"
   version = "v0.7.2"
-
-[[projects]]
-  name = "github.com/dennwc/graphql"
-  packages = ["gqlerrors","language/ast","language/lexer","language/parser"]
-  revision = "a5cf5f205dfd1cec7d9c7a5e94f5f2084faf47bc"
-  version = "v0.4.18"
 
 [[projects]]
   name = "github.com/dlclark/regexp2"
@@ -62,12 +56,6 @@
   version = "v1.0.0"
 
 [[projects]]
-  name = "github.com/graphql-go/graphql"
-  packages = ["gqlerrors","language/ast","language/kinds","language/lexer","language/location","language/source"]
-  revision = "1e23489041ba90a66f317fe0deccb236a2fff3cb"
-  version = "v0.7.5"
-
-[[projects]]
   name = "github.com/mattn/go-isatty"
   packages = ["."]
   revision = "0360b2af4f38e8d38c7fce2a9f4e702702d73a39"
@@ -78,6 +66,12 @@
   packages = ["."]
   revision = "6c771bb9887719704b210e87e934f08be014bdb1"
   version = "v1.6.0"
+
+[[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
+  version = "v1.0.5"
 
 [[projects]]
   branch = "master"
@@ -93,8 +87,14 @@
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/crypto"
+  packages = ["ssh/terminal"]
+  revision = "d6449816ce06963d9d136eee5a56fca5b0616e7e"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix"]
+  packages = ["unix","windows"]
   revision = "91ee8cde435411ca3f1cd365e8f20131aed4d0a1"
 
 [[projects]]
@@ -118,6 +118,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "09f5c1f2689f38641047fd84d71b8dcc274f0e0ac5d62e8b7896c643b8c48236"
+  inputs-digest = "367bcef40d26b4d9135f4c18904f81fecd6c3cfa27cd82296cd44fc6423bd30e"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -25,10 +25,10 @@ package engine
 import (
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/yroffin/go-boot-sqllite/core/winter"
 )
 
@@ -64,7 +64,6 @@ func (m *APIManager) New() IAPIManager {
 
 // Init a single bean
 func (m *APIManager) Init() error {
-	log.Printf("Manager::Init")
 	return nil
 }
 
@@ -81,12 +80,16 @@ func (m *APIManager) CommandLine() error {
 func (m *APIManager) Validate(name string) error {
 	if *m.phttp != -1 {
 		// Declarre listener HTTP
-		log.Printf("Manager::Boot listen on %v", *m.phttp)
+		log.WithFields(log.Fields{
+			"port": *m.phttp,
+		}).Info("Boot listener http")
 		m.Router.HTTP(*m.phttp)
 	}
 	if *m.phttps != -1 {
 		// Declarre listener HTTPS
-		log.Printf("Manager::Boot listen on %v", *m.phttps)
+		log.WithFields(log.Fields{
+			"port": *m.phttps,
+		}).Info("Boot listener https")
 		m.Router.HTTPS(*m.phttps)
 	}
 	m.Wait()
@@ -98,11 +101,15 @@ func (m *APIManager) HTTP(port int) error {
 	var sport = fmt.Sprintf("%d", port)
 	m.wg.Add(1)
 	go func(sport string) {
-		log.Printf("Try to serve HTTP proxy on %s", sport)
+		log.WithFields(log.Fields{
+			"port": sport,
+		}).Info("Try to serve http proxy")
 		// After defining our server, we finally "listen and serve" on port 8080
 		err := http.ListenAndServe(":"+sport, nil)
 		if err != nil {
-			log.Fatalf("Unable to serve HTTP %v", err)
+			log.WithFields(log.Fields{
+				"error": err,
+			}).Fatal("Unable to serve http")
 		}
 	}(sport)
 	return nil
@@ -113,11 +120,15 @@ func (m *APIManager) HTTPS(port int) error {
 	var sport = fmt.Sprintf("%d", port)
 	m.wg.Add(1)
 	go func(sport string) {
-		log.Printf("Try to serve HTTPS proxy on %s", sport)
+		log.WithFields(log.Fields{
+			"port": sport,
+		}).Info("Try to serve https proxy")
 		// Also serve on https/tls
 		err := http.ListenAndServeTLS(":"+sport, ".ssl/hostname.pem", ".ssl/private.key", nil)
 		if err != nil {
-			log.Fatalf("Unable to serve HTTPS %v", err)
+			log.WithFields(log.Fields{
+				"error": err,
+			}).Fatal("Unable to serve https")
 		}
 	}(sport)
 	return nil

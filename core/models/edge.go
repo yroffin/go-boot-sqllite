@@ -69,7 +69,6 @@ type IEdgeBean interface {
 	GetLink() string
 	SetInstance(string)
 	GetInstance() string
-	GetExtend() map[string]interface{}
 }
 
 // New constructor

@@ -63,6 +63,7 @@ type IPersistent interface {
 	SetTimestamp(JSONTime)
 	Copy() IPersistent
 	Extend(map[string]interface{})
+	GetExtend() map[string]interface{}
 }
 
 // IPersistents interface

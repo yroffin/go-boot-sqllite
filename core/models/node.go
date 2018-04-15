@@ -65,6 +65,11 @@ func (p *NodeBean) Extend(e map[string]interface{}) {
 	}
 }
 
+// GetExtend vars
+func (p *NodeBean) GetExtend() map[string]interface{} {
+	return p.Extended
+}
+
 // GetType get set name
 func (p *NodeBean) GetType() string {
 	return p.Type

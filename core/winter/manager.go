@@ -26,6 +26,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -113,22 +114,34 @@ func (m *Manager) Boot() error {
 	}
 	for index := 0; index < len(m.ArrayOfBeans); index++ {
 		log.WithFields(log.Fields{
-			"name": m.ArrayOfBeanNames[index],
+			"index": index,
+			"count": len(m.ArrayOfBeans),
+			"name":  m.ArrayOfBeanNames[index],
 		}).Info("Boot post-construct execute")
 		m.execute(false, m.ArrayOfBeanNames[index], m.ArrayOfBeans[index], "PostConstruct")
 		log.WithFields(log.Fields{
-			"name": m.ArrayOfBeanNames[index],
+			"index": index,
+			"count": len(m.ArrayOfBeans),
+			"name":  m.ArrayOfBeanNames[index],
 		}).Info("Boot post-construct execute sucessfull")
 	}
 	for index := 0; index < len(m.ArrayOfBeans); index++ {
 		log.WithFields(log.Fields{
-			"name": m.ArrayOfBeanNames[index],
-		}).Info("Boot post-construct validate")
+			"index": index,
+			"count": len(m.ArrayOfBeans),
+			"name":  m.ArrayOfBeanNames[index],
+		}).Info("Boot validate execute")
 		m.execute(false, m.ArrayOfBeanNames[index], m.ArrayOfBeans[index], "Validate")
 		log.WithFields(log.Fields{
-			"name": m.ArrayOfBeanNames[index],
-		}).Info("Boot post-construct validate sucessfull")
+			"index": index,
+			"count": len(m.ArrayOfBeans),
+			"name":  m.ArrayOfBeanNames[index],
+		}).Info("Boot validate execute sucessfull")
 	}
+	// Wait infinite
+	var wg sync.WaitGroup
+	wg.Add(1)
+	wg.Wait()
 	return nil
 }
 

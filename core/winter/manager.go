@@ -28,6 +28,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/gobuffalo/packr"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -65,7 +66,7 @@ type IManager interface {
 	IService
 	// Method
 	Register(name string, b IBean) error
-	Boot() error
+	Boot(string) error
 	GetBean(name string) interface{}
 	GetBeanNames() []string
 	ForEach(func(interface{}))
@@ -105,7 +106,9 @@ func (m *Manager) Register(name string, b IBean) error {
 }
 
 // Boot Init this manager
-func (m *Manager) Boot() error {
+func (m *Manager) Boot(resources string) error {
+	// Packr
+	box := packr.NewBox(resources)
 	for index := 0; index < len(m.ArrayOfBeans); index++ {
 		m.Inject(m.ArrayOfBeanNames[index], m.ArrayOfBeans[index])
 		log.WithFields(log.Fields{
@@ -124,6 +127,19 @@ func (m *Manager) Boot() error {
 			"count": len(m.ArrayOfBeans),
 			"name":  m.ArrayOfBeanNames[index],
 		}).Info("Boot post-construct execute sucessfull")
+	}
+	for index := 0; index < len(m.ArrayOfBeans); index++ {
+		log.WithFields(log.Fields{
+			"index": index,
+			"count": len(m.ArrayOfBeans),
+			"name":  m.ArrayOfBeanNames[index],
+		}).Info("Boot validate execute")
+		m.resources(false, m.ArrayOfBeanNames[index], m.ArrayOfBeans[index], "Resources", box)
+		log.WithFields(log.Fields{
+			"index": index,
+			"count": len(m.ArrayOfBeans),
+			"name":  m.ArrayOfBeanNames[index],
+		}).Info("Boot validate execute sucessfull")
 	}
 	for index := 0; index < len(m.ArrayOfBeans); index++ {
 		log.WithFields(log.Fields{
@@ -260,6 +276,26 @@ func (m *Manager) autowire(debug bool, level int, name string, intf interface{},
 			if !(len(tag.Get("@autowired")) > 0) {
 				m.autowire(debug, level+1, name, valueField.Interface(), valueField)
 			}
+		}
+	}
+}
+
+// dumpFields dump all fields
+func (m *Manager) resources(debug bool, beanName string, intf interface{}, handler string, resources packr.Box) {
+	val := reflect.ValueOf(intf)
+	for i := 0; i < val.NumMethod(); i++ {
+		typeMethod := val.Type().Method(i)
+		if typeMethod.Name == handler {
+			var setter = reflect.ValueOf(intf).MethodByName(handler)
+			arr := [2]reflect.Value{reflect.ValueOf(beanName), reflect.ValueOf(resources)}
+			var arguments = arr[:2]
+			if debug {
+				log.WithFields(log.Fields{
+					"handler": handler,
+					"name":    beanName,
+				}).Debug("Execute")
+			}
+			setter.Call(arguments)
 		}
 	}
 }

@@ -1,3 +1,4 @@
+// Package apis for common apis
 // MIT License
 //
 // Copyright (c) 2017 yroffin
@@ -19,25 +20,10 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-package main
+package winter
 
-import (
-	"path"
-	"runtime"
-
-	_ "github.com/yroffin/go-boot-sqllite/core/auto"
-	"github.com/yroffin/go-boot-sqllite/core/engine"
-	"github.com/yroffin/go-boot-sqllite/core/winter"
-)
-
-// Main
-func main() {
-	winter.Helper.Register("NodeBean", (&engine.Node{}).New())
-	// Files
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		panic("No caller information")
-	}
-	// Boot
-	winter.Helper.Boot(path.Dir(filename) + "/dist")
+// PackManager implements packager
+type PackManager interface {
+	List() []string
+	MustString(string) (string, error)
 }

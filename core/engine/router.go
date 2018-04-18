@@ -27,7 +27,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gobuffalo/packr"
 	log "github.com/sirupsen/logrus"
 	"github.com/yroffin/go-boot-sqllite/core/winter"
 )
@@ -41,8 +40,8 @@ type service struct {
 	*winter.Service
 	// gin router
 	Engine *gin.Engine
-	// Packr
-	box packr.Box
+	// PackManager
+	box winter.PackManager
 	// SwaggerService with injection mecanism
 	Swagger ISwaggerService `@autowired:"swagger"`
 }
@@ -86,8 +85,8 @@ func (p *service) PostConstruct(name string) error {
 }
 
 // Resources Init this API
-func (p *service) Resources(name string, box packr.Box) error {
-	// Packr
+func (p *service) Resources(name string, box winter.PackManager) error {
+	// PackManager
 	p.box = box
 	for _, resource := range box.List() {
 		var content = "text/html"

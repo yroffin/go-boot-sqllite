@@ -28,7 +28,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gobuffalo/packr"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -72,7 +71,7 @@ type IManager interface {
 	IService
 	// Method
 	Register(name string, b IBean) error
-	Boot(string) error
+	Boot(PackManager) error
 	GetBean(name string) interface{}
 	GetBeanNames() []string
 	ForEach(func(interface{}))
@@ -112,9 +111,7 @@ func (m *Manager) Register(name string, b IBean) error {
 }
 
 // Boot Init this manager
-func (m *Manager) Boot(resources string) error {
-	// Packr
-	box := packr.NewBox(resources)
+func (m *Manager) Boot(box PackManager) error {
 	for index := 0; index < len(m.ArrayOfBeans); index++ {
 		m.Inject(m.ArrayOfBeanNames[index], m.ArrayOfBeans[index])
 		log.WithFields(log.Fields{
@@ -287,7 +284,7 @@ func (m *Manager) autowire(debug bool, level int, name string, intf interface{},
 }
 
 // dumpFields dump all fields
-func (m *Manager) resources(debug bool, beanName string, intf interface{}, handler string, resources packr.Box) {
+func (m *Manager) resources(debug bool, beanName string, intf interface{}, handler string, resources PackManager) {
 	val := reflect.ValueOf(intf)
 	for i := 0; i < val.NumMethod(); i++ {
 		typeMethod := val.Type().Method(i)

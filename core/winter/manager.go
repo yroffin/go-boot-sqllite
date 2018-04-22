@@ -23,6 +23,7 @@
 package winter
 
 import (
+	"io"
 	"os"
 	"reflect"
 	"strings"
@@ -38,7 +39,7 @@ var (
 
 func init() {
 	// Log as JSON instead of the default ASCII formatter.
-	log.SetFormatter(&log.JSONFormatter{})
+	log.SetFormatter(&log.TextFormatter{})
 
 	// Output to stdout instead of the default stderr
 	// Can be any io.Writer, see below for File example
@@ -50,7 +51,9 @@ func init() {
 	// Output to file
 	file, err := os.OpenFile("boot.log", os.O_CREATE|os.O_WRONLY, 0666)
 	if err == nil {
-		log.SetOutput(file)
+		var writers io.Writer
+		writers = io.MultiWriter(os.Stderr, file)
+		log.SetOutput(writers)
 	} else {
 		log.Info("Failed to log to file, using default stderr")
 	}

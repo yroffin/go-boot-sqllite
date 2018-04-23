@@ -65,6 +65,8 @@ type API struct {
 	Factories        func() models.IPersistents
 	HandlerTasks     func(name string, body string) (interface{}, int, error)
 	HandlerTasksByID func(id string, name string, body string) (interface{}, int, error)
+	// Adapters
+	GetByIDListener []func(models.IPersistent) models.IPersistent
 }
 
 // APIMethod single structure to modelise api declaration
@@ -557,7 +559,14 @@ func (p *API) GetAll() ([]models.IPersistent, error) {
 
 // GetByID get by id
 func (p *API) GetByID(id string) (models.IPersistent, error) {
-	return p.GenericGetByID(id, p.Factory())
+	result, err := p.GenericGetByID(id, p.Factory())
+	// Listener middleware
+	if p.GetByIDListener != nil {
+		for _, adapter := range p.GetByIDListener {
+			result = adapter(result)
+		}
+	}
+	return result, err
 }
 
 // HandlerPost create handler

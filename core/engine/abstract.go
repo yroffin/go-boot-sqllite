@@ -403,7 +403,11 @@ func (p *API) XTotalCount(c *gin.Context, count int) {
 func (p *API) HandlerStaticPostByID() func(c *gin.Context) {
 	anonymous := func(c *gin.Context) {
 		c.Header("Content-type", "application/json")
-		body, _ := ioutil.ReadAll(c.Request.Body)
+		body, err := ioutil.ReadAll(c.Request.Body)
+		if err != nil {
+			c.IndentedJSON(400, err)
+			return
+		}
 		if len(c.Query("task")) > 0 {
 			if c.Param("id") == "*" {
 				// id with * is like post on all resources

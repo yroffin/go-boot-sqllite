@@ -148,7 +148,7 @@ func (p *API) ScanHandler(swagger ISwaggerService, ptr interface{}) {
 			log.WithFields(log.Fields{
 				"name": field.Name,
 			}).Info("Handler")
-			p.add(ptr, field.Tag.Get("path"), field.Tag.Get("@handler"), field.Tag.Get("method"), field.Tag.Get("mime-type"), "", "", map[string]interface{}{}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{})
+			p.add(ptr, field.Tag.Get("path"), field.Tag.Get("@handler"), field.Tag.Get("method"), field.Tag.Get("mime-type"), "Handler", "Handler", map[string]interface{}{}, map[string]interface{}{}, []interface{}{}, map[string]interface{}{})
 		}
 		// declare a crud handler
 		if len(field.Tag.Get("@crud")) > 0 {
@@ -247,6 +247,7 @@ func (p *API) Init() error {
 	// build all static acess to low level function (private)
 	for i := 0; i < len(p.methods); i++ {
 		log.WithFields(log.Fields{
+			"handler":     p.methods[i].handler,
 			"path":        p.methods[i].path,
 			"argument(s)": arguments,
 		}).Info("Build static link")
@@ -271,31 +272,33 @@ func (p *API) Validate(name string) error {
 // Declare a new interface
 func (p *API) Declare(data APIMethod, intf interface{}) error {
 	// verify type
-	if value, ok := intf.(func(c *gin.Context, target IAPI)); ok {
+	if value, ok := intf.(func(c IHttpContext, target IAPI)); ok {
 		log.WithFields(log.Fields{
 			"handler": data.handler,
 			"path":    data.path,
 			"method":  data.method,
 			"router":  (p.Router).GetName(),
 			"mime":    data.typeMime,
-		}).Info("Declare handler")
+		}).Info("Declare handler GIN/API")
 		// declare it to the router
 		(p.Router).HandleFuncLink(data.path, value, data.method, data.typeMime, data.target)
 		return nil
 	}
+
 	// verify type
-	if value, ok := intf.(func(c *gin.Context)); ok {
+	if value, ok := intf.(func(IHttpContext)); ok {
 		log.WithFields(log.Fields{
 			"handler": data.handler,
 			"path":    data.path,
 			"method":  data.method,
 			"router":  (p.Router).GetName(),
 			"mime":    data.typeMime,
-		}).Info("Declare handler")
+		}).Info("Declare handler GIN")
 		// declare it to the router
 		(p.Router).HandleFunc(data.path, value, data.method, data.typeMime)
 		return nil
 	}
+
 	// verify type
 	if value, ok := intf.(func() (string, error)); ok {
 		log.WithFields(log.Fields{
@@ -304,11 +307,12 @@ func (p *API) Declare(data APIMethod, intf interface{}) error {
 			"method":  data.method,
 			"router":  (p.Router).GetName(),
 			"mime":    data.typeMime,
-		}).Info("Declare function")
+		}).Info("Declare procedure")
 		// declare it to the router
 		(p.Router).HandleFuncString(data.path, value, data.method, data.typeMime)
 		return nil
 	}
+
 	// verify type
 	if value, ok := intf.(func(string) (string, error)); ok {
 		log.WithFields(log.Fields{
@@ -322,6 +326,11 @@ func (p *API) Declare(data APIMethod, intf interface{}) error {
 		(p.Router).HandleFuncStringWithId(data.path, value, data.method, data.typeMime)
 		return nil
 	}
+
+	log.WithFields(log.Fields{
+		"type":  reflect.TypeOf(intf).String(),
+		"error": errors.New("Unable to find any type for " + data.handler),
+	}).Error("Declare for type")
 	// Error case
 	return errors.New("Unable to find any type for " + data.handler)
 }
@@ -498,8 +507,8 @@ func (p *API) HandlerLinkStaticGetAll() func(c *gin.Context, targetType IAPI) {
 }
 
 // HandlerLinkStaticGetByID is the GET by ID handler
-func (p *API) HandlerLinkStaticGetByID() func(c *gin.Context, targetType string) {
-	anonymous := func(c *gin.Context, targetType string) {
+func (p *API) HandlerLinkStaticGetByID() func(c *gin.Context, targetType IAPI) {
+	anonymous := func(c *gin.Context, targetType IAPI) {
 		c.Header("Content-type", "application/json")
 		data, err := p.GetByID(c.Param("id"))
 		if err != nil {

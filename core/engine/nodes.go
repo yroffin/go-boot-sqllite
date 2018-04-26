@@ -27,6 +27,10 @@ import (
 	"github.com/yroffin/go-boot-sqllite/core/winter"
 )
 
+func init() {
+	winter.Helper.Register("NodeBean", (&Node{}).New())
+}
+
 // Node internal members
 type Node struct {
 	// Base component
@@ -36,8 +40,7 @@ type Node struct {
 	// mounts
 	Crud interface{} `@crud:"/api/nodes"`
 	Link INode       `@autowired:"NodeBean" @link:"/api/nodes" @href:"nodes"`
-	Node INode       `@autowired:"NodeBean"`
-	// SwaggerService with injection mecanism
+	// Swagger with injection mecanism
 	Swagger ISwaggerService `@autowired:"swagger"`
 }
 

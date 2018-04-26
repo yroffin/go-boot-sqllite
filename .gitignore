@@ -17,3 +17,5 @@ gin-bin
 go-boot-sqllite
 *.db
 sqllite.db
+boot.log
+jarvis.log

@@ -27,6 +27,9 @@ import (
 	"github.com/yroffin/go-boot-sqllite/core/winter"
 )
 
+// Pack for acess to packr
+var Pack winter.PackManager
+
 func init() {
 	winter.Helper.Init()
 	winter.Helper.GetBean("APIManager").(engine.IAPIManager).CommandLine()

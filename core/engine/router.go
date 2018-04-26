@@ -39,7 +39,7 @@ func init() {
 type service struct {
 	*winter.Service
 	// gin router
-	Engine *gin.Engine
+	engine *gin.Engine
 	// PackManager
 	box winter.PackManager
 	// SwaggerService with injection mecanism
@@ -56,9 +56,9 @@ type IRouter interface {
 	// Swagger
 	SwaggerModel() func(*gin.Context)
 	// HandleFunc
-	HandleFunc(path string, f func(c *gin.Context), method string, content string)
+	HandleFunc(path string, f func(c IHttpContext), method string, content string)
 	// HandleFunc
-	HandleFuncLink(path string, f func(c *gin.Context, target IAPI), method string, content string, target IAPI)
+	HandleFuncLink(path string, f func(c IHttpContext, target IAPI), method string, content string, target IAPI)
 	// HandleFuncString declare a string handler
 	HandleFuncString(path string, f func() (string, error), method string, content string)
 	// HandleFuncStringWithId declare a string handler
@@ -68,6 +68,8 @@ type IRouter interface {
 // New constructor
 func (p *service) New() IRouter {
 	bean := service{Service: &winter.Service{Bean: &winter.Bean{}}}
+	// define all routes
+	bean.engine = gin.Default()
 	return &bean
 }
 
@@ -78,9 +80,6 @@ func (p *service) Init() error {
 
 // PostConstruct Init this API
 func (p *service) PostConstruct(name string) error {
-	// define all routes
-	p.Engine = gin.Default()
-
 	return nil
 }
 
@@ -107,7 +106,7 @@ func (p *service) Resources(name string, box winter.PackManager) error {
 			"path":     "/public/" + resource,
 			"content":  content,
 		}).Info("Resources")
-		p.Engine.GET("/public/"+resource, p.HandlerStaticFile(resource, content))
+		p.engine.GET("/public/"+resource, p.HandlerStaticFile(resource, content))
 	}
 	return nil
 }
@@ -129,8 +128,8 @@ func (p *service) SwaggerModel() func(*gin.Context) {
 func (p *service) HTTP(port int) error {
 	gin.SetMode("debug")
 
-	p.Engine.GET("/api/swagger.json", p.SwaggerModel())
-	p.Engine.Run(":" + strconv.Itoa(port))
+	p.engine.GET("/api/swagger.json", p.SwaggerModel())
+	p.engine.Run(":" + strconv.Itoa(port))
 	return nil
 }
 
@@ -142,31 +141,31 @@ func (p *service) HTTPS(port int) error {
 // HandleFunc declare a handler
 func (p *service) HandleFuncTonic(path string, f func() (interface{}, error), method string, content string) {
 	// declare it to the router
-	p.Engine.Handle(method, path, p.HandlerStaticJson(f, 200, ""))
+	p.engine.Handle(method, path, p.HandlerStaticJson(f, 200, ""))
 }
 
 // HandleFunc declare a handler
-func (p *service) HandleFunc(path string, f func(c *gin.Context), method string, content string) {
+func (p *service) HandleFunc(path string, f func(c IHttpContext), method string, content string) {
 	// declare it to the router
-	p.Engine.Handle(method, path, p.HandlerStatic(f, content))
+	p.engine.Handle(method, path, p.HandlerStatic(f, content))
 }
 
 // HandleFuncLink declare a handler
-func (p *service) HandleFuncLink(path string, f func(c *gin.Context, target IAPI), method string, content string, target IAPI) {
+func (p *service) HandleFuncLink(path string, f func(c IHttpContext, target IAPI), method string, content string, target IAPI) {
 	// declare it to the router
-	p.Engine.Handle(method, path, p.HandlerStaticLink(f, content, target))
+	p.engine.Handle(method, path, p.HandlerStaticLink(f, content, target))
 }
 
 // HandleFuncString declare a string handler
 func (p *service) HandleFuncString(path string, f func() (string, error), method string, content string) {
 	// declare it to the router
-	p.Engine.Handle(method, path, p.HandlerStaticString(f, content))
+	p.engine.Handle(method, path, p.HandlerStaticString(f, content))
 }
 
 // HandleFuncStringWithId declare a string handler
 func (p *service) HandleFuncStringWithId(path string, f func(string) (string, error), method string, content string) {
 	// declare it to the router
-	p.Engine.Handle(method, path, p.HandlerStaticStringWithId(f, content))
+	p.engine.Handle(method, path, p.HandlerStaticStringWithId(f, content))
 }
 
 // HandlerStaticNotFound Not found handler
@@ -243,7 +242,7 @@ func (p *service) HandlerStaticJson(method func() (interface{}, error), code int
 }
 
 // HandlerStatic render string
-func (p *service) HandlerStatic(method func(c *gin.Context), content string) func(c *gin.Context) {
+func (p *service) HandlerStatic(method func(c IHttpContext), content string) func(c *gin.Context) {
 	anonymous := func(c *gin.Context) {
 		// security header
 		c.Header("Strict-Transport-Security", "")
@@ -261,7 +260,7 @@ func (p *service) HandlerStatic(method func(c *gin.Context), content string) fun
 }
 
 // HandlerStaticLink render static handler
-func (p *service) HandlerStaticLink(method func(c *gin.Context, target IAPI), content string, target IAPI) func(c *gin.Context) {
+func (p *service) HandlerStaticLink(method func(c IHttpContext, target IAPI), content string, target IAPI) func(c *gin.Context) {
 	anonymous := func(c *gin.Context) {
 		// security header
 		c.Header("Strict-Transport-Security", "")

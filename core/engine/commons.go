@@ -21,3 +21,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 package engine
+
+// IHttpContext map GIN context
+type IHttpContext interface {
+	Header(key, value string)
+	IndentedJSON(code int, obj interface{})
+	Status(code int)
+	Param(key string) string
+	Query(key string) string
+}

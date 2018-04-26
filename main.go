@@ -22,22 +22,18 @@
 package main
 
 import (
-	"path"
-	"runtime"
-
-	_ "github.com/yroffin/go-boot-sqllite/core/auto"
-	"github.com/yroffin/go-boot-sqllite/core/engine"
+	"github.com/gobuffalo/packr"
+	auto "github.com/yroffin/go-boot-sqllite/core/auto"
 	"github.com/yroffin/go-boot-sqllite/core/winter"
 )
 
-// Main
+// PackInstance packer singleton
+func PackInstance() winter.PackManager {
+	auto.Pack = packr.NewBox("./dist")
+	return auto.Pack
+}
+
 func main() {
-	winter.Helper.Register("NodeBean", (&engine.Node{}).New())
-	// Files
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		panic("No caller information")
-	}
 	// Boot
-	winter.Helper.Boot(path.Dir(filename) + "/dist")
+	winter.Helper.Boot(PackInstance())
 }

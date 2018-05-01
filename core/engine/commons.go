@@ -26,7 +26,10 @@ package engine
 type IHttpContext interface {
 	Header(key, value string)
 	IndentedJSON(code int, obj interface{})
+	String(code int, format string, values ...interface{})
 	Status(code int)
 	Param(key string) string
 	Query(key string) string
+	GetQuery(key string) (string, bool)
+	GetRawData() ([]byte, error)
 }

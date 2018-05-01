@@ -25,14 +25,12 @@ package engine
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"reflect"
 	"strconv"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/gin-gonic/gin"
 	"github.com/yroffin/go-boot-sqllite/core/models"
 	"github.com/yroffin/go-boot-sqllite/core/winter"
 )
@@ -336,8 +334,8 @@ func (p *API) Declare(data APIMethod, intf interface{}) error {
 }
 
 // HandlerStaticGetAll is the GET by ID handler
-func (p *API) HandlerStaticGetAll() func(c *gin.Context) {
-	anonymous := func(c *gin.Context) {
+func (p *API) HandlerStaticGetAll() func(c IHttpContext) {
+	anonymous := func(c IHttpContext) {
 		c.Header("Content-type", "application/json")
 		data, err := p.GetAll()
 		if err != nil {
@@ -350,8 +348,8 @@ func (p *API) HandlerStaticGetAll() func(c *gin.Context) {
 }
 
 // HandlerStaticGetByID is the GET by ID handler
-func (p *API) HandlerStaticGetByID() func(c *gin.Context) {
-	anonymous := func(c *gin.Context) {
+func (p *API) HandlerStaticGetByID() func(c IHttpContext) {
+	anonymous := func(c IHttpContext) {
 		c.Header("Content-type", "application/json")
 		data, err := p.GetByID(c.Param("id"))
 		if err != nil {
@@ -364,10 +362,10 @@ func (p *API) HandlerStaticGetByID() func(c *gin.Context) {
 }
 
 // HandlerStaticPost is the POST handler
-func (p *API) HandlerStaticPost() func(c *gin.Context) {
-	anonymous := func(c *gin.Context) {
+func (p *API) HandlerStaticPost() func(c IHttpContext) {
+	anonymous := func(c IHttpContext) {
 		c.Header("Content-type", "application/json")
-		body, _ := ioutil.ReadAll(c.Request.Body)
+		body, _ := c.GetRawData()
 		if len(c.Query("task")) > 0 {
 			data, count, err := p.HandlerTasks(c.Query("task"), string(body))
 			if err != nil {
@@ -377,7 +375,7 @@ func (p *API) HandlerStaticPost() func(c *gin.Context) {
 			p.XTotalCount(c, count)
 			c.IndentedJSON(202, data)
 		} else {
-			_, ok := c.Request.URL.Query()["filter"]
+			_, ok := c.GetQuery("filter")
 			if ok {
 				var objmap map[string]string
 				err := json.Unmarshal(body, &objmap)
@@ -401,7 +399,7 @@ func (p *API) HandlerStaticPost() func(c *gin.Context) {
 }
 
 // XTotalCount handle X-Total-Count
-func (p *API) XTotalCount(c *gin.Context, count int) {
+func (p *API) XTotalCount(c IHttpContext, count int) {
 	// handle X-total-count
 	if count >= 0 {
 		c.Header("X-total-count", strconv.Itoa(count))
@@ -409,10 +407,10 @@ func (p *API) XTotalCount(c *gin.Context, count int) {
 }
 
 // HandlerStaticPostByID is the POST handler
-func (p *API) HandlerStaticPostByID() func(c *gin.Context) {
-	anonymous := func(c *gin.Context) {
+func (p *API) HandlerStaticPostByID() func(c IHttpContext) {
+	anonymous := func(c IHttpContext) {
 		c.Header("Content-type", "application/json")
-		body, err := ioutil.ReadAll(c.Request.Body)
+		body, err := c.GetRawData()
 		if err != nil {
 			c.IndentedJSON(400, err)
 			return
@@ -449,10 +447,10 @@ func (p *API) HandlerStaticPostByID() func(c *gin.Context) {
 }
 
 // HandlerStaticPutByID is the PUT by ID handler
-func (p *API) HandlerStaticPutByID() func(c *gin.Context) {
-	anonymous := func(c *gin.Context) {
+func (p *API) HandlerStaticPutByID() func(c IHttpContext) {
+	anonymous := func(c IHttpContext) {
 		c.Header("Content-type", "application/json")
-		body, _ := ioutil.ReadAll(c.Request.Body)
+		body, _ := c.GetRawData()
 		data, err := p.HandlerPutByID(c.Param("id"), string(body))
 		if err != nil {
 			c.String(400, "{\"message\":\"\"}")
@@ -464,8 +462,8 @@ func (p *API) HandlerStaticPutByID() func(c *gin.Context) {
 }
 
 // HandlerStaticDeleteByID is the DELETE by ID handler
-func (p *API) HandlerStaticDeleteByID() func(c *gin.Context) {
-	anonymous := func(c *gin.Context) {
+func (p *API) HandlerStaticDeleteByID() func(c IHttpContext) {
+	anonymous := func(c IHttpContext) {
 		c.Header("Content-type", "application/json")
 		data, err := p.HandlerDeleteByID(c.Param("id"))
 		if err != nil {
@@ -478,10 +476,10 @@ func (p *API) HandlerStaticDeleteByID() func(c *gin.Context) {
 }
 
 // HandlerStaticPatchByID is the PATCH by ID handler
-func (p *API) HandlerStaticPatchByID() func(c *gin.Context) {
-	anonymous := func(c *gin.Context) {
+func (p *API) HandlerStaticPatchByID() func(c IHttpContext) {
+	anonymous := func(c IHttpContext) {
 		c.Header("Content-type", "application/json")
-		body, _ := ioutil.ReadAll(c.Request.Body)
+		body, _ := c.GetRawData()
 		data, err := p.HandlerPatchByID(c.Param("id"), string(body))
 		if err != nil {
 			c.String(400, "{\"message\":\"\"}")
@@ -493,8 +491,8 @@ func (p *API) HandlerStaticPatchByID() func(c *gin.Context) {
 }
 
 // HandlerLinkStaticGetAll is the GET by ID handler
-func (p *API) HandlerLinkStaticGetAll() func(c *gin.Context, targetType IAPI) {
-	anonymous := func(c *gin.Context, targetType IAPI) {
+func (p *API) HandlerLinkStaticGetAll() func(c IHttpContext, targetType IAPI) {
+	anonymous := func(c IHttpContext, targetType IAPI) {
 		c.Header("Content-type", "application/json")
 		data, err := p.GetAllLinks(c.Param("id"), targetType)
 		if err != nil {
@@ -507,8 +505,8 @@ func (p *API) HandlerLinkStaticGetAll() func(c *gin.Context, targetType IAPI) {
 }
 
 // HandlerLinkStaticGetByID is the GET by ID handler
-func (p *API) HandlerLinkStaticGetByID() func(c *gin.Context, targetType IAPI) {
-	anonymous := func(c *gin.Context, targetType IAPI) {
+func (p *API) HandlerLinkStaticGetByID() func(c IHttpContext, targetType IAPI) {
+	anonymous := func(c IHttpContext, targetType IAPI) {
 		c.Header("Content-type", "application/json")
 		data, err := p.GetByID(c.Param("id"))
 		if err != nil {
@@ -521,10 +519,10 @@ func (p *API) HandlerLinkStaticGetByID() func(c *gin.Context, targetType IAPI) {
 }
 
 // HandlerLinkStaticPostByID is the PUT by ID handler
-func (p *API) HandlerLinkStaticPostByID() func(c *gin.Context, targetType IAPI) {
-	anonymous := func(c *gin.Context, targetType IAPI) {
+func (p *API) HandlerLinkStaticPostByID() func(c IHttpContext, targetType IAPI) {
+	anonymous := func(c IHttpContext, targetType IAPI) {
 		c.Header("Content-type", "application/json")
-		body, _ := ioutil.ReadAll(c.Request.Body)
+		body, _ := c.GetRawData()
 		data, err := p.HandlerLinkPostByID(c.Param("id"), c.Param("link"), string(body), targetType)
 		if err != nil {
 			c.String(400, "{\"message\":\"\"}")
@@ -536,10 +534,10 @@ func (p *API) HandlerLinkStaticPostByID() func(c *gin.Context, targetType IAPI) 
 }
 
 // HandlerLinkStaticPutByID is the PUT by ID handler
-func (p *API) HandlerLinkStaticPutByID() func(c *gin.Context, targetType IAPI) {
-	anonymous := func(c *gin.Context, targetType IAPI) {
+func (p *API) HandlerLinkStaticPutByID() func(c IHttpContext, targetType IAPI) {
+	anonymous := func(c IHttpContext, targetType IAPI) {
 		c.Header("Content-type", "application/json")
-		body, _ := ioutil.ReadAll(c.Request.Body)
+		body, _ := c.GetRawData()
 		data, err := p.HandlerLinkPutByID(c.Param("id"), c.Param("link"), string(body), targetType, c.Query("instance"))
 		if err != nil {
 			c.String(400, "{\"message\":\"\"}")
@@ -551,10 +549,10 @@ func (p *API) HandlerLinkStaticPutByID() func(c *gin.Context, targetType IAPI) {
 }
 
 // HandlerLinkStaticDeleteByID is the DELETE by ID handler
-func (p *API) HandlerLinkStaticDeleteByID() func(c *gin.Context, targetType IAPI) {
-	anonymous := func(c *gin.Context, targetType IAPI) {
+func (p *API) HandlerLinkStaticDeleteByID() func(c IHttpContext, targetType IAPI) {
+	anonymous := func(c IHttpContext, targetType IAPI) {
 		c.Header("Content-type", "application/json")
-		body, _ := ioutil.ReadAll(c.Request.Body)
+		body, _ := c.GetRawData()
 		data, err := p.HandlerLinkDeleteByID(c.Param("id"), c.Param("link"), string(body), targetType, c.Query("instance"))
 		if err != nil {
 			c.String(400, "{\"message\":\"\"}")

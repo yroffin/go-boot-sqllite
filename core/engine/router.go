@@ -108,6 +108,10 @@ func (p *service) Resources(name string, box winter.PackManager) error {
 		}).Info("Resources")
 		p.engine.GET("/public/"+resource, p.HandlerStaticFile(resource, content))
 		if strings.HasSuffix(resource, "index.html") {
+			log.WithFields(log.Fields{
+				"resource": resource,
+				"content":  content,
+			}).Info("404 handler")
 			// No route go to inde.html
 			p.engine.NoRoute(p.HandlerStaticFile(resource, content))
 		}

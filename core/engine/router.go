@@ -84,7 +84,7 @@ func (p *service) PostConstruct(name string) error {
 }
 
 // Resources Init this API
-func (p *service) Resources(name string, box winter.PackManager) error {
+func (p *service) Resources(name string, box winter.PackManager, notFound string) error {
 	// PackManager
 	p.box = box
 	for _, resource := range box.List() {
@@ -107,7 +107,7 @@ func (p *service) Resources(name string, box winter.PackManager) error {
 			"content":  content,
 		}).Info("Resources")
 		p.engine.GET("/public/"+resource, p.HandlerStaticFile(resource, content))
-		if strings.HasSuffix(resource, "index.html") {
+		if strings.HasSuffix(resource, "index.html") && notFound == resource {
 			log.WithFields(log.Fields{
 				"resource": resource,
 				"content":  content,

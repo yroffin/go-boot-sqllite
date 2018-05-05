@@ -74,7 +74,7 @@ type IManager interface {
 	IService
 	// Method
 	Register(name string, b IBean) error
-	Boot(PackManager) error
+	Boot(PackManager, string) error
 	GetBean(name string) interface{}
 	GetBeanNames() []string
 	ForEach(func(interface{}))
@@ -114,7 +114,7 @@ func (m *Manager) Register(name string, b IBean) error {
 }
 
 // Boot Init this manager
-func (m *Manager) Boot(box PackManager) error {
+func (m *Manager) Boot(box PackManager, notFound string) error {
 	for index := 0; index < len(m.ArrayOfBeans); index++ {
 		m.Inject(m.ArrayOfBeanNames[index], m.ArrayOfBeans[index])
 		log.WithFields(log.Fields{
@@ -140,7 +140,7 @@ func (m *Manager) Boot(box PackManager) error {
 			"count": len(m.ArrayOfBeans),
 			"name":  m.ArrayOfBeanNames[index],
 		}).Info("Boot validate execute")
-		m.resources(false, m.ArrayOfBeanNames[index], m.ArrayOfBeans[index], "Resources", box)
+		m.resources(false, m.ArrayOfBeanNames[index], m.ArrayOfBeans[index], "Resources", box, notFound)
 		log.WithFields(log.Fields{
 			"index": index,
 			"count": len(m.ArrayOfBeans),
@@ -287,14 +287,14 @@ func (m *Manager) autowire(debug bool, level int, name string, intf interface{},
 }
 
 // dumpFields dump all fields
-func (m *Manager) resources(debug bool, beanName string, intf interface{}, handler string, resources PackManager) {
+func (m *Manager) resources(debug bool, beanName string, intf interface{}, handler string, resources PackManager, notFound string) {
 	val := reflect.ValueOf(intf)
 	for i := 0; i < val.NumMethod(); i++ {
 		typeMethod := val.Type().Method(i)
 		if typeMethod.Name == handler {
 			var setter = reflect.ValueOf(intf).MethodByName(handler)
-			arr := [2]reflect.Value{reflect.ValueOf(beanName), reflect.ValueOf(resources)}
-			var arguments = arr[:2]
+			arr := [3]reflect.Value{reflect.ValueOf(beanName), reflect.ValueOf(resources), reflect.ValueOf(notFound)}
+			var arguments = arr[:3]
 			if debug {
 				log.WithFields(log.Fields{
 					"handler": handler,

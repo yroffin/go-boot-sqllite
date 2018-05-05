@@ -107,6 +107,10 @@ func (p *service) Resources(name string, box winter.PackManager) error {
 			"content":  content,
 		}).Info("Resources")
 		p.engine.GET("/public/"+resource, p.HandlerStaticFile(resource, content))
+		if strings.HasSuffix(resource, "index.html") {
+			// No route go to inde.html
+			p.engine.NoRoute(p.HandlerStaticFile(resource, content))
+		}
 	}
 	return nil
 }

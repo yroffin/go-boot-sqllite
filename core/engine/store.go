@@ -37,6 +37,17 @@ type IStats interface {
 	GetValue() string
 }
 
+// IQuad model
+type IQuad interface {
+	SubjectID() string
+	Subject() string
+	PredicateID() string
+	Predicate() string
+	ObjectID() string
+	Object() string
+	Label() string
+}
+
 // StoreStats statss
 type StoreStats struct {
 	Key   string
@@ -76,6 +87,7 @@ type IGraphStore interface {
 	GetLink(entity models.IEdgeBean) error
 	GetAllLink(model string, id string, collection *[]models.IEdgeBean, targetType string) error
 	Clear() error
+	All() ([]IQuad, error)
 	Statistics() ([]IStats, error)
 	Export() (map[string][]map[string]interface{}, error)
 }

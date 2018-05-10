@@ -52,6 +52,11 @@ func (p *GraphCrudBusiness) Clear() error {
 }
 
 // Statistics some statistics
+func (p *GraphCrudBusiness) All() ([]IQuad, error) {
+	return p.Store.All()
+}
+
+// Statistics some statistics
 func (p *GraphCrudBusiness) Statistics() ([]IStats, error) {
 	return p.Store.Statistics()
 }

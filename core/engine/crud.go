@@ -44,13 +44,15 @@ type ICrudBusiness interface {
 // ILinkBusiness interface
 type ILinkBusiness interface {
 	winter.IBean
-	// Linked ones
+	// Linked nodes
 	CreateLink(toCreate models.IEdgeBean) (models.IEdgeBean, error)
 	UpdateLink(toUpdate models.IEdgeBean) (models.IEdgeBean, error)
 	DeleteLink(toCreate models.IEdgeBean) (models.IEdgeBean, error)
 	PatchLink(toPatch models.IEdgeBean) (models.IEdgeBean, error)
 	GetAllLink(model string, id string, toGets []models.IEdgeBean, targetType string) ([]models.IEdgeBean, error)
+	// Models admin
 	Clear() error
+	All() ([]IQuad, error)
 	Statistics() ([]IStats, error)
 	Export() (map[string][]map[string]interface{}, error)
 }

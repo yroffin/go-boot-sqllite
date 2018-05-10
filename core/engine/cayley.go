@@ -34,11 +34,11 @@ import (
 
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/gizmo"
 	// bolt
 	_ "github.com/cayleygraph/cayley/graph/kv/bolt"
-	"github.com/cayleygraph/cayley/quad"
 
 	"github.com/yroffin/go-boot-sqllite/core/models"
 	"github.com/yroffin/go-boot-sqllite/core/winter"
@@ -98,6 +98,64 @@ func (p *Graph) Clear() error {
 	}
 
 	return nil
+}
+
+type quadCayley struct {
+	subjectID   string
+	subject     string
+	predicateID string
+	predicate   string
+	objectID    string
+	object      string
+	label       string
+}
+
+func (q quadCayley) SubjectID() string {
+	return q.subjectID
+}
+
+func (q quadCayley) Subject() string {
+	return q.subject
+}
+
+func (q quadCayley) PredicateID() string {
+	return q.predicateID
+}
+
+func (q quadCayley) Predicate() string {
+	return q.predicate
+}
+
+func (q quadCayley) ObjectID() string {
+	return q.objectID
+}
+
+func (q quadCayley) Object() string {
+	return q.object
+}
+
+func (q quadCayley) Label() string {
+	return q.label
+}
+
+// All get all element of database
+func (p *Graph) All() ([]IQuad, error) {
+	elements := make([]IQuad, 0)
+	it := p.store.QuadsAllIterator()
+	for it.Next(context.Background()) {
+		qu := p.store.Quad(it.Result())
+		element := quadCayley{
+			subject:     strings.Split(qu.Subject.Native().(string), "/")[1],
+			subjectID:   strings.Split(qu.Subject.Native().(string), "/")[2],
+			predicate:   strings.Split(qu.Predicate.Native().(string), ":")[0],
+			predicateID: strings.Split(qu.Predicate.Native().(string), ":")[1],
+			object:      strings.Split(qu.Object.Native().(string), "/")[1],
+			objectID:    strings.Split(qu.Object.Native().(string), "/")[2],
+			label:       qu.Label.Native().(string),
+		}
+		elements = append(elements, &element)
+	}
+	return elements, nil
 }
 
 // Statistics some statistics

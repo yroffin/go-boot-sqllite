@@ -65,6 +65,7 @@ type API struct {
 	HandlerTasksByID func(id string, name string, body string) (interface{}, int, error)
 	// Adapters
 	GetByIDListener []func(models.IPersistent) models.IPersistent
+	PutByIDListener []func(models.IPersistent) models.IPersistent
 }
 
 // APIMethod single structure to modelise api declaration
@@ -591,8 +592,15 @@ func (p *API) HandlerFilter(body map[string]string) (models.IPersistents, error)
 }
 
 // HandlerPutByID update by id
-func (p *API) HandlerPutByID(id string, body string) (interface{}, error) {
-	return p.GenericPutByID(id, body, p.Factory())
+func (p *API) HandlerPutByID(id string, body string) (models.IPersistent, error) {
+	result, err := p.GenericPutByID(id, body, p.Factory())
+	// Listener middleware
+	if p.PutByIDListener != nil {
+		for _, adapter := range p.PutByIDListener {
+			result = adapter(result)
+		}
+	}
+	return result, err
 }
 
 // HandlerDeleteByID delete by id
@@ -691,7 +699,7 @@ func (p *API) GenericPost(body string, toCreate models.IPersistent) (interface{}
 }
 
 // GenericPutByID default method
-func (p *API) GenericPutByID(id string, body string, toUpdate models.IPersistent) (interface{}, error) {
+func (p *API) GenericPutByID(id string, body string, toUpdate models.IPersistent) (models.IPersistent, error) {
 	toUpdate.SetID(id)
 	var bin = []byte(body)
 	json.Unmarshal(bin, &toUpdate)

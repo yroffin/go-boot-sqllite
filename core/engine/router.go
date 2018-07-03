@@ -23,6 +23,7 @@
 package engine
 
 import (
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -61,6 +62,8 @@ type IRouter interface {
 	HandleFuncLink(path string, f func(c IHttpContext, target IAPI), method string, content string, target IAPI)
 	// HandleFuncString declare a string handler
 	HandleFuncString(path string, f func() (string, error), method string, content string)
+	// HandleRequest declare a string handler
+	HandleRequest(path string, f http.Handler, method string)
 	// HandleFuncStringWithId declare a string handler
 	HandleFuncStringWithId(path string, f func(string) (string, error), method string, content string)
 }
@@ -174,6 +177,12 @@ func (p *service) HandleFuncString(path string, f func() (string, error), method
 func (p *service) HandleFuncStringWithId(path string, f func(string) (string, error), method string, content string) {
 	// declare it to the router
 	p.engine.Handle(method, path, p.HandlerStaticStringWithId(f, content))
+}
+
+// HandleFuncStringWithId declare a string handler
+func (p *service) HandleRequest(path string, f http.Handler, method string) {
+	// declare it to the router
+	p.engine.Handle(method, path, p.HandleStaticRequest(f))
 }
 
 // HandlerStaticNotFound Not found handler
@@ -331,6 +340,22 @@ func (p *service) HandlerStaticStringWithId(method func(string) (string, error),
 		if len(content) > 0 {
 			c.Header("Content-Type", content)
 		}
+	}
+	return anonymous
+}
+
+// HandleStaticRequest render handler
+func (p *service) HandleStaticRequest(method http.Handler) func(c *gin.Context) {
+	anonymous := func(c *gin.Context) {
+		// security header
+		c.Header("Strict-Transport-Security", "")
+		c.Header("Content-Security-Policy", "")
+		c.Header("X-Frame-Options", "SAMEORIGIN")
+		c.Header("X-XSS-Protection", "1; mode=block")
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("Referrer-Policy", "same-origin")
+
+		method.ServeHTTP(c.Writer, c.Request)
 	}
 	return anonymous
 }

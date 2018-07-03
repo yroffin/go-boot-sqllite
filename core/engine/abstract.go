@@ -25,6 +25,7 @@ package engine
 import (
 	"encoding/json"
 	"errors"
+	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
@@ -309,6 +310,20 @@ func (p *API) Declare(data APIMethod, intf interface{}) error {
 		}).Info("Declare procedure")
 		// declare it to the router
 		(p.Router).HandleFuncString(data.path, value, data.method, data.typeMime)
+		return nil
+	}
+
+	// verify type
+	if value, ok := intf.(http.Handler); ok {
+		log.WithFields(log.Fields{
+			"handler": data.handler,
+			"path":    data.path,
+			"method":  data.method,
+			"router":  (p.Router).GetName(),
+			"mime":    data.typeMime,
+		}).Info("Declare procedure")
+		// declare it to the router
+		(p.Router).HandleRequest(data.path, value, data.method)
 		return nil
 	}
 

@@ -53,7 +53,7 @@ type IRouter interface {
 	// Http boot
 	HTTP(port int) error
 	// Https boot
-	HTTPS(port int) error
+	HTTPS(port int, certFile string, keyFile string) error
 	// Swagger
 	SwaggerModel() func(*gin.Context)
 	// HandleFunc
@@ -145,7 +145,11 @@ func (p *service) HTTP(port int) error {
 }
 
 // HTTP boot http service
-func (p *service) HTTPS(port int) error {
+func (p *service) HTTPS(port int, certFile string, keyFile string) error {
+	gin.SetMode("debug")
+
+	p.engine.GET("/api/swagger.json", p.SwaggerModel())
+	p.engine.RunTLS(":"+strconv.Itoa(port), certFile, keyFile)
 	return nil
 }
 

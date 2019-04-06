@@ -41,7 +41,9 @@ type APIManager struct {
 	// Properties
 	phttp *int
 	// Properties
-	phttps *int
+	phttps   *int
+	certFile *string
+	keyFile  *string
 	// Inject
 	Router IRouter `@autowired:"router"`
 }
@@ -69,6 +71,8 @@ func (m *APIManager) CommandLine() error {
 	// scan flags
 	m.phttp = flag.Int("http", -1, "Http port")
 	m.phttps = flag.Int("https", -1, "Https port")
+	m.certFile = flag.String("certFile", "", "cert file")
+	m.keyFile = flag.String("keyFile", "", "key file")
 	flag.Parse()
 	return nil
 }
@@ -87,7 +91,7 @@ func (m *APIManager) Validate(name string) error {
 		log.WithFields(log.Fields{
 			"port": *m.phttps,
 		}).Info("Boot listener https")
-		go m.Router.HTTPS(*m.phttps)
+		go m.Router.HTTPS(*m.phttps, *m.certFile, *m.keyFile)
 	}
 	return nil
 }
